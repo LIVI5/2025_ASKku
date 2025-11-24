@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { User } = require("../models");
+const { users: User } = require("../models");
 
 async function authMiddleware(req, res, next) {
   const auth = req.headers.authorization;
@@ -8,7 +8,7 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ success: false, message: "토큰 없음" });
   }
 
-  const token = auth.split(" ")[1];
+    const token = auth.split(" ")[1].trim();
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -18,10 +18,14 @@ async function authMiddleware(req, res, next) {
       return res.status(401).json({ success: false, message: "유효하지 않은 사용자" });
     }
 
+    console.log("TOKEN:", token);
+    console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
     req.user = user;
     next();
 
   } catch (err) {
+    console.error("JWT ERROR:", err.message);
     res.status(401).json({ success: false, message: "인증 실패" });
   }
 }
