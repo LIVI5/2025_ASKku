@@ -18,9 +18,6 @@ async function authMiddleware(req, res, next) {
       return res.status(401).json({ success: false, message: "유효하지 않은 사용자" });
     }
 
-    console.log("TOKEN:", token);
-    console.log("JWT_SECRET:", process.env.JWT_SECRET);
-
     req.user = user;
     next();
 
