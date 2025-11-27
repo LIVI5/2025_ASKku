@@ -5,7 +5,7 @@ const { User } = require("../models"); // <-- 수정
 // ------------------ REGISTER ------------------
 const register = async (req, res) => {
   try {
-    const { email, password, name, department } = req.body;
+    const { email, password, name, department, grade } = req.body;
 
     // 이메일 중복 확인
     const existing = await User.findOne({ where: { email } });
@@ -19,13 +19,14 @@ const register = async (req, res) => {
 
     // 비밀번호 해시화
     const hash = await bcrypt.hash(password, 10);
-
+  
     // 사용자 생성
     const user = await User.create({
       email,
       password_hash: hash,
       name,
       department,
+      grade,
     });
 
     return res.status(201).json({
@@ -89,18 +90,75 @@ const login = async (req, res) => {
   }
 };
 
-
-// ------------------ GET CURRENT USER ------------------
-const me = async (req, res) => {
+// ==================== 추가 정보 업데이트 ====================
+const updateAdditionalInfo = async (req, res) => {
   try {
+    const userID = req.user.userID;
+    const { additionalInfo } = req.body;
+
+    const user = await User.findByPk(userID);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    // additional_info 업데이트
+    await user.update({
+      additional_info: additionalInfo,
+    });
+
     return res.json({
       success: true,
-      user: req.user,
+      message: "추가 정보가 저장되었습니다.",
+      additional_info: user.additional_info,
     });
+
   } catch (err) {
-    return res.status(500).json({ success: false, message: "서버 오류" });
+    console.error("Update Additional Info Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "정보 저장 실패",
+    });
+  }
+};
+
+// ==================== 내 정보 조회 ====================
+const getMyInfo = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    const user = await User.findByPk(userID, {
+      attributes: { exclude: ["password_hash"] }, // 비밀번호 제외
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      user,
+    });
+
+  } catch (err) {
+    console.error("Get My Info Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "정보 조회 실패",
+    });
   }
 };
 
 
-module.exports = { register, login, me };
+module.exports = {
+  register,
+  login,
+  updateAdditionalInfo,
+  getMyInfo,
+};
