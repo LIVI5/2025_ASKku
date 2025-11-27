@@ -22,7 +22,7 @@ def get_retriever():
         embedding_function=embeddings,
         persist_directory=PERSIST_DIR,
     )
-    return vectordb.as_retriever(search_kwargs={"k": 5})
+    return vectordb.as_retriever(search_kwargs={"k": 5}) # 문서 검색 개수
 
 
 def main():
@@ -70,10 +70,10 @@ def main():
 
         # 3) 시스템/유저 메시지 구성 + 정리
         system_msg_raw = (
-            "너는 성균관대학교 교환학생 관련 정보를 도와주는 챗봇이야.\n"
+            "너는 성균관대학교와 관련된 정보를 찾는 것을 도와주는 챗봇이야.\n"
             "아래 '문맥'에 포함된 내용만 사실로 사용해서 대답해.\n"
             "문맥에 관련 정보가 없으면 솔직하게 모른다고 말하고, "
-            "성균관대학교 공식 홈페이지나 국제처에 문의하라고 안내해.\n"
+            "성균관대학교 공식 홈페이지나 관련 부처에 연락하라고 안내해.\n"
             "사용자가 한국어로 물으면 한국어로, 영어로 물으면 영어로 답해."
         )
         system_msg = clean_text(system_msg_raw)
