@@ -106,7 +106,7 @@ python ingest.py --create
 python ingest.py --pdf --no-crawl --no-static
 
 # 파이썬 서버 실행 (localhost:8001)
-uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+uvicorn rag_api:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 #### 실행 흐름

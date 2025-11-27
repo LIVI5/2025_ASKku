@@ -195,7 +195,7 @@ def process_crawler(
         crawl_kwargs = {}
     
     try:
-        # 크롤링 실행
+        # 크롤링 실행 (크롤러가 이미 숫자만 반환함)
         notices = crawl_func(existing_post_nums=existing_post_nums, **crawl_kwargs)
         
         if not notices:
