@@ -1,16 +1,46 @@
-# Node.js + Express + MySQL Boilerplate
+# Node.js Backend Setup
+
+## Prerequisites
+
+- Node.js 18+
+- MySQL 실행 중 (`askku` DB 생성 필요)
+- `.env` 파일 설정
+
+---
 
 ## Quick Start
+### 1. 프로젝트 준비
 
 ```bash
 git clone <repo-url>
-cd project
+cd ai-search-backend
 cp .env.example .env
-npm install
-npm run dev
 ```
 
----
+### 2. 환경 변수 설정
+
+```bash
+DB_HOST=localhost
+DB_USER=
+DB_PASSWORD=
+DB_NAME=askku
+
+JWT_SECRET=your_secret_key
+
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### 3. 패키지 설치
+
+```bash
+npm start
+```
+
+### 4. 서버 실행
+
+```bash
+npm start
+```
 
 # RAG (Retrieval-Augmented Generation) Setup
 
@@ -74,6 +104,9 @@ python ingest.py --create
 
 # 조합 예시: PDF만 처리 (크롤링/정적데이터 스킵)
 python ingest.py --pdf --no-crawl --no-static
+
+# 파이썬 서버 실행 (localhost:8001)
+uvicorn rag_api:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 #### 실행 흐름
@@ -236,6 +269,13 @@ python ingest.py
 
 ---
 
+```bash
+uvicorn rag_api:app --host 0.0.0.0 --port 8001 --reload
+```
+
+python 서버가 실행됩니다. 이후 Postman을 통해 테스트 진행해주세요.
+
+---
 ## 라이센스
 
 MIT
