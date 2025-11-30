@@ -1,19 +1,20 @@
-module.exports = (sequelize, DataTypes) => {
-  const Message = sequelize.define("messages", {
-    msg_id: {
-      type: DataTypes.BIGINT,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    role: {
-      type: DataTypes.ENUM("user", "assistant"),
-      allowNull: false,
-    },
-    content: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-  });
+const { DataTypes } = require("sequelize");
 
-  return Message;
+module.exports = (sequelize) => {
+  return sequelize.define(
+    "Message",
+    {
+      messageID: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      convID: { type: DataTypes.INTEGER, allowNull: false },
+      userID: { type: DataTypes.INTEGER, allowNull: true }, // assistant messages = null
+      role: { type: DataTypes.ENUM("user", "assistant"), allowNull: false },
+      message: { type: DataTypes.TEXT, allowNull: false },
+    },
+    {
+      tableName: "MESSAGE",
+      timestamps: true,
+      createdAt: "timestamp",
+      updatedAt: false,
+    }
+  );
 };
