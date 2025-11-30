@@ -66,6 +66,11 @@ if (User && Schedule) {
   Schedule.belongsTo(User, { foreignKey: "userID" });
 }
 
+if (db.Timetable && db.TimetableItem) {
+  db.Timetable.hasMany(db.TimetableItem, { foreignKey: "timetableID", onDelete: "CASCADE" });
+  db.TimetableItem.belongsTo(db.Timetable, { foreignKey: "timetableID" });
+}
+
 
 // =============================
 // EXPORT
