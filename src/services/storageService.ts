@@ -1,0 +1,63 @@
+import { User } from '../types'
+
+const USERS_KEY = 'askku_users'
+const TOKEN_KEY = 'askku_token'
+
+// User management
+export const saveUser = (user: User): void => {
+    const users = getAllUsers()
+    users.push(user)
+    localStorage.setItem(USERS_KEY, JSON.stringify(users))
+}
+
+export const getUserByEmail = (email: string): User | null => {
+    const users = getAllUsers()
+    return users.find(user => user.email === email) || null
+}
+
+export const getUserByStudentId = (studentId: string): User | null => {
+    const users = getAllUsers()
+    return users.find(user => user.studentId === studentId) || null
+}
+
+export const getUserById = (id: string): User | null => {
+    const users = getAllUsers()
+    return users.find(user => user.id === id) || null
+}
+
+export const getAllUsers = (): User[] => {
+    const usersJson = localStorage.getItem(USERS_KEY)
+    return usersJson ? JSON.parse(usersJson) : []
+}
+
+// Password management (stored separately for security)
+const PASSWORDS_KEY = 'askku_passwords'
+
+export const savePassword = (userId: string, password: string): void => {
+    const passwords = getPasswords()
+    passwords[userId] = password // In production, this should be hashed
+    localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords))
+}
+
+export const verifyPassword = (userId: string, password: string): boolean => {
+    const passwords = getPasswords()
+    return passwords[userId] === password
+}
+
+const getPasswords = (): Record<string, string> => {
+    const passwordsJson = localStorage.getItem(PASSWORDS_KEY)
+    return passwordsJson ? JSON.parse(passwordsJson) : {}
+}
+
+// Token management
+export const saveToken = (token: string): void => {
+    localStorage.setItem(TOKEN_KEY, token)
+}
+
+export const getToken = (): string | null => {
+    return localStorage.getItem(TOKEN_KEY)
+}
+
+export const removeToken = (): void => {
+    localStorage.removeItem(TOKEN_KEY)
+}

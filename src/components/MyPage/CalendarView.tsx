@@ -1,0 +1,139 @@
+import { useState, useEffect } from 'react'
+import { Schedule } from '../../types'
+import { getSchedules, deleteSchedule } from '../../services/myPageService'
+
+interface CalendarViewProps {
+    onAddClick: () => void
+}
+
+export default function CalendarView({ onAddClick }: CalendarViewProps) {
+    const [currentDate, setCurrentDate] = useState(new Date())
+    const [schedules, setSchedules] = useState<Schedule[]>([])
+
+    useEffect(() => {
+        setSchedules(getSchedules())
+    }, [])
+
+    const getDaysInMonth = (year: number, month: number) => {
+        return new Date(year, month + 1, 0).getDate()
+    }
+
+    const getFirstDayOfMonth = (year: number, month: number) => {
+        return new Date(year, month, 1).getDay()
+    }
+
+    const handlePrevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    }
+
+    const handleNextMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    }
+
+    const handleDeleteSchedule = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (window.confirm('일정을 삭제하시겠습니까?')) {
+            deleteSchedule(id)
+            setSchedules(getSchedules())
+        }
+    }
+
+    const renderCalendar = () => {
+        const year = currentDate.getFullYear()
+        const month = currentDate.getMonth()
+        const daysInMonth = getDaysInMonth(year, month)
+        const firstDay = getFirstDayOfMonth(year, month)
+        const days = []
+
+        // Empty cells for previous month
+        for (let i = 0; i < firstDay; i++) {
+            days.push(<div key={`empty-${i}`} className="h-32 border-b border-r border-gray-100 bg-gray-50/30"></div>)
+        }
+
+        // Days of current month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const daySchedules = schedules.filter(s => s.date === dateStr)
+            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
+
+            days.push(
+                <div key={day} className={`h-32 border-b border-r border-gray-100 p-2 relative group hover:bg-gray-50 transition-colors ${isToday ? 'bg-blue-50/30' : ''}`}>
+                    <span className={`text-sm font-medium ${isToday ? 'text-askku-primary bg-blue-100 px-2 py-0.5 rounded-full' : 'text-gray-700'}`}>
+                        {day}
+                    </span>
+                    <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
+                        {daySchedules.map(schedule => (
+                            <div
+                                key={schedule.id}
+                                className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
+                                style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
+                                title={schedule.title}
+                            >
+                                <span className="truncate">{schedule.title}</span>
+                                <button
+                                    onClick={(e) => handleDeleteSchedule(schedule.id, e)}
+                                    className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        }
+
+        return days
+    }
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Calendar Header */}
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-lg font-bold text-gray-800">
+                        {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+                    </h2>
+                    <div className="flex gap-1">
+                        <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                        </button>
+                        <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </button>
+                        <button onClick={() => setCurrentDate(new Date())} className="text-sm text-gray-500 hover:text-askku-primary ml-2">
+                            오늘
+                        </button>
+                    </div>
+                </div>
+                <button
+                    onClick={onAddClick}
+                    className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors flex items-center gap-2"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    일정 추가
+                </button>
+            </div>
+
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+                {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
+                    <div key={day} className={`py-2 text-center text-sm font-medium ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
+                        {day}
+                    </div>
+                ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7">
+                {renderCalendar()}
+            </div>
+        </div>
+    )
+}
