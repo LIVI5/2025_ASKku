@@ -4,10 +4,31 @@ module.exports = (sequelize) => {
   return sequelize.define(
     "Bookmark",
     {
-      markID: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      userID: { type: DataTypes.INTEGER, allowNull: false },
-      title: { type: DataTypes.STRING(255), allowNull: true },
-      contents: { type: DataTypes.TEXT, allowNull: true },
+      bookmarkID: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      userID: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: "북마크 소유자"
+      },
+      question: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        comment: "사용자 질문"
+      },
+      answer: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        comment: "AI 답변"
+      },
+      sources: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: "참고 문서 출처 정보"
+      },
     },
     {
       tableName: "BOOKMARK",
