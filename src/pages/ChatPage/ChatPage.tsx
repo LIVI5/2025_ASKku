@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import ChatMessage from '../../components/Chat/ChatMessage'
 import ChatInput from '../../components/Chat/ChatInput'
 import BookmarkSidebar from '../../components/Chat/BookmarkSidebar'
@@ -13,23 +14,54 @@ import {
     clearAllBookmarks,
     clearSession
 } from '../../services/chatService'
+import { addSchedule } from '../../services/myPageService'
 import { ChatMessage as ChatMessageType } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
 
 export default function ChatPage() {
+    const location = useLocation()
     const [messages, setMessages] = useState<ChatMessageType[]>([])
     const [bookmarks, setBookmarks] = useState(getBookmarks())
     const [isLoading, setIsLoading] = useState(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const initialMessageSentRef = useRef(false)
 
-    // Load session on mount
+    // Load session on mount and handle initial message from HomePage
     useEffect(() => {
+        // Prevent multiple executions
+        if (initialMessageSentRef.current) return
+
         let session = getCurrentSession()
         if (!session) {
             session = createNewSession()
         }
-        setMessages(session.messages)
-    }, [])
+
+        // Handle initial message from HomePage
+        const initialMessage = (location.state as any)?.initialMessage
+        if (initialMessage) {
+            initialMessageSentRef.current = true
+
+            // If there are existing messages, start a new chat
+            if (session.messages.length > 0) {
+                clearSession()
+                session = createNewSession()
+            }
+
+            // Set empty messages first
+            setMessages([])
+
+            // Send the initial message after a brief delay
+            setTimeout(() => {
+                handleSendMessage(initialMessage)
+            }, 100)
+
+            // Clear state to prevent resending on back navigation
+            window.history.replaceState({}, document.title)
+        } else {
+            // Load existing session messages
+            setMessages(session.messages)
+        }
+    }, [location.state])
 
     // Auto scroll to bottom
     useEffect(() => {
@@ -63,6 +95,48 @@ export default function ChatPage() {
         setBookmarks(getBookmarks())
     }
 
+    const handleScheduleAdd = (messageId: string, content: string) => {
+        // Extract date from content
+        const extractDate = (text: string): string | null => {
+            const currentYear = new Date().getFullYear()
+
+            const format1 = /(\d{4})-(\d{1,2})-(\d{1,2})/
+            const format2 = /(\d{1,2})월\s?(\d{1,2})일/
+            const format3 = /(\d{4})년\s?(\d{1,2})월\s?(\d{1,2})일/
+
+            let match = text.match(format1)
+            if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
+
+            match = text.match(format3)
+            if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
+
+            match = text.match(format2)
+            if (match) return `${currentYear}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`
+
+            return null
+        }
+
+        const dateString = extractDate(content)
+        if (!dateString) {
+            alert('날짜 정보를 찾을 수 없습니다.')
+            return
+        }
+
+        // Find the user message before this assistant message
+        const messageIndex = messages.findIndex(m => m.id === messageId)
+        const userMessage = messageIndex > 0 ? messages[messageIndex - 1] : null
+        const title = userMessage?.content || '챗봇 일정'
+
+        addSchedule({
+            title: title.substring(0, 50), // Limit title length
+            date: dateString,
+            type: 'academic',
+            color: '#3B82F6'
+        })
+
+        alert(`일정이 등록되었습니다.\n날짜: ${dateString}\n내용: ${title}`)
+    }
+
     const handleRemoveBookmark = (bookmarkId: string) => {
         removeBookmark(bookmarkId)
         setBookmarks(getBookmarks())
@@ -90,6 +164,7 @@ export default function ChatPage() {
         const newSession = createNewSession()
         setMessages(newSession.messages)
         setIsLoading(false)
+        initialMessageSentRef.current = false
     }
 
     return (
@@ -135,18 +210,14 @@ export default function ChatPage() {
                                         key={message.id}
                                         message={message}
                                         onBookmark={handleBookmark}
+                                        onScheduleAdd={handleScheduleAdd}
                                     />
                                 ))}
                                 {isLoading && (
                                     <div className="flex justify-start mb-4">
                                         <div className="flex gap-3 max-w-[70%]">
                                             <div className="w-10 h-10 rounded-full bg-askku-primary flex items-center justify-center flex-shrink-0">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white">
-                                                    <path
-                                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
-                                                        fill="currentColor"
-                                                    />
-                                                </svg>
+                                                <img src={logoImage} alt="ASKku Bot" className="w-6 h-6 object-contain" />
                                             </div>
                                             <div className="bg-gray-100 px-4 py-3 rounded-lg">
                                                 <div className="flex gap-1">

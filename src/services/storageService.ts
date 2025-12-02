@@ -15,11 +15,6 @@ export const getUserByEmail = (email: string): User | null => {
     return users.find(user => user.email === email) || null
 }
 
-export const getUserByStudentId = (studentId: string): User | null => {
-    const users = getAllUsers()
-    return users.find(user => user.studentId === studentId) || null
-}
-
 export const getUserById = (id: string): User | null => {
     const users = getAllUsers()
     return users.find(user => user.id === id) || null
@@ -28,6 +23,13 @@ export const getUserById = (id: string): User | null => {
 export const getAllUsers = (): User[] => {
     const usersJson = localStorage.getItem(USERS_KEY)
     return usersJson ? JSON.parse(usersJson) : []
+}
+
+// Clear all data (for development/reset)
+export const clearAllData = (): void => {
+    localStorage.removeItem(USERS_KEY)
+    localStorage.removeItem('askku_passwords')
+    localStorage.removeItem(TOKEN_KEY)
 }
 
 // Password management (stored separately for security)

@@ -3,7 +3,6 @@ import { generateToken, decodeToken, verifyToken } from '../utils/jwtUtils'
 import {
     saveUser,
     getUserByEmail,
-    getUserByStudentId,
     getUserById,
     savePassword,
     verifyPassword,
@@ -31,20 +30,14 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
         }
     }
 
-    // Check if student ID already exists
-    if (getUserByStudentId(data.studentId)) {
-        return {
-            success: false,
-            message: '이미 사용 중인 학번입니다'
-        }
-    }
-
     // Create new user
     const user: User = {
         id: `user_${Date.now()}`,
         name: `${data.lastName}${data.firstName}`,
         email: data.email,
-        studentId: data.studentId,
+        admissionYear: data.admissionYear,
+        currentGrade: data.currentGrade,
+        currentSemester: data.currentSemester,
         department: data.department,
         createdAt: new Date().toISOString()
     }
@@ -53,25 +46,16 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     saveUser(user)
     savePassword(user.id, data.password)
 
-    // Generate token
-    const token = generateToken({ userId: user.id, email: user.email })
-    saveToken(token)
-    setLastLoginTime()
-
+    // Do NOT auto-login, just return success
     return {
         success: true,
-        token,
-        user,
-        message: '회원가입이 완료되었습니다'
+        message: '회원가입이 완료되었습니다. 로그인해주세요.'
     }
 }
 
-export const login = async (emailOrId: string, password: string): Promise<AuthResponse> => {
-    // Try to find user by email or student ID
-    let user = getUserByEmail(emailOrId)
-    if (!user) {
-        user = getUserByStudentId(emailOrId)
-    }
+export const login = async (email: string, password: string): Promise<AuthResponse> => {
+    // Find user by email only
+    const user = getUserByEmail(email)
 
     if (!user) {
         return {

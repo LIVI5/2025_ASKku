@@ -14,6 +14,7 @@ export default function CalendarView({ onAddClick }: CalendarViewProps) {
         setSchedules(getSchedules())
     }, [])
 
+
     const getDaysInMonth = (year: number, month: number) => {
         return new Date(year, month + 1, 0).getDate()
     }
@@ -32,10 +33,8 @@ export default function CalendarView({ onAddClick }: CalendarViewProps) {
 
     const handleDeleteSchedule = (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
-        if (window.confirm('일정을 삭제하시겠습니까?')) {
-            deleteSchedule(id)
-            setSchedules(getSchedules())
-        }
+        deleteSchedule(id)
+        setSchedules(getSchedules())
     }
 
     const renderCalendar = () => {

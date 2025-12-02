@@ -11,6 +11,16 @@ export default function HomePage() {
     // 최신 공지사항 6개
     const latestNotices = dummyNotices.slice(0, 6)
 
+    // 빠른 채팅 입력
+    const [quickMessage, setQuickMessage] = useState('')
+
+    const handleQuickChat = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (quickMessage.trim()) {
+            navigate('/chat', { state: { initialMessage: quickMessage.trim() } })
+        }
+    }
+
     return (
         <div className="max-w-6xl mx-auto p-8">
             {/* Title Section */}
@@ -19,21 +29,25 @@ export default function HomePage() {
                 <p className="text-gray-600">학사, 정보, 공지사항, 강의 정보를 검색해보세요</p>
             </div>
 
-            {/* Search Bar */}
+            {/* Quick Chat Input */}
             <div className="max-w-2xl mx-auto mb-8">
-                <div className="relative">
+                <form onSubmit={handleQuickChat} className="relative">
                     <input
                         type="text"
-                        placeholder="검색어를 입력하세요..."
+                        value={quickMessage}
+                        onChange={(e) => setQuickMessage(e.target.value)}
+                        placeholder="챗봇에게 물어보세요..."
                         className="w-full px-6 py-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-lg"
                     />
-                    <button className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-askku-primary">
+                    <button
+                        type="submit"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-askku-primary transition-colors"
+                    >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-                            <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
-                </div>
+                </form>
             </div>
 
             {/* Category Tabs */}
@@ -43,8 +57,8 @@ export default function HomePage() {
                         key={category}
                         onClick={() => setActiveCategory(category)}
                         className={`px-6 py-2 rounded-full font-medium transition-colors ${activeCategory === category
-                                ? 'bg-askku-primary text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-askku-primary text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         {category}

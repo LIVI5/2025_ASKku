@@ -1,17 +1,20 @@
 export interface Notice {
     id: number
-    category: '긴급' | '학사' | '행사' | '사업' | '공지'
+    source: string
     title: string
     content: string
     date: string
     views: number
+    url?: string
 }
 
 export interface User {
     id: string
     name: string
     email: string
-    studentId: string
+    admissionYear: string
+    currentGrade: number
+    currentSemester: number
     department: string
     createdAt: string
 }
@@ -20,7 +23,9 @@ export interface RegisterData {
     lastName: string
     firstName: string
     email: string
-    studentId: string
+    admissionYear: string
+    currentGrade: number
+    currentSemester: number
     department: string
     password: string
 }

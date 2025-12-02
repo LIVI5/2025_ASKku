@@ -12,7 +12,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         lastName: '',
         firstName: '',
         email: '',
-        studentId: '',
+        admissionYear: '',
+        currentGrade: 1,
+        currentSemester: 1,
         department: '',
         password: '',
         confirmPassword: '',
@@ -32,6 +34,10 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         '기타',
     ]
 
+    // Generate admission year options (current year - 10 to current year)
+    const currentYear = new Date().getFullYear()
+    const admissionYears = Array.from({ length: 11 }, (_, i) => currentYear - i)
+
     const validateForm = () => {
         const newErrors: Record<string, string> = {}
 
@@ -44,11 +50,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             newErrors.email = '올바른 이메일 형식이 아닙니다'
         }
 
-        // 학번 검증 (숫자 10자리)
-        if (!formData.studentId) {
-            newErrors.studentId = '학번을 입력해주세요'
-        } else if (!/^\d{10}$/.test(formData.studentId)) {
-            newErrors.studentId = '학번은 10자리 숫자여야 합니다'
+        // 입학년도 검증
+        if (!formData.admissionYear) {
+            newErrors.admissionYear = '입학년도를 선택해주세요'
         }
 
         // 비밀번호 검증 (8자 이상, 특수문자 포함)
@@ -87,13 +91,17 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     lastName: formData.lastName,
                     firstName: formData.firstName,
                     email: formData.email,
-                    studentId: formData.studentId,
+                    admissionYear: formData.admissionYear,
+                    currentGrade: formData.currentGrade,
+                    currentSemester: formData.currentSemester,
                     department: formData.department,
                     password: formData.password
                 })
 
                 if (response.success) {
-                    navigate('/home')
+                    // Show success message and redirect to login
+                    alert(response.message || '회원가입이 완료되었습니다. 로그인해주세요.')
+                    onSwitchToLogin()
                 } else {
                     setErrors({ submit: response.message || '회원가입에 실패했습니다' })
                 }
@@ -113,7 +121,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
 
         setFormData((prev) => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value,
+            [name]: type === 'checkbox' ? checked : type === 'select-one' && (name === 'currentGrade' || name === 'currentSemester') ? Number(value) : value,
         }))
 
         // Clear error when user starts typing
@@ -186,22 +194,55 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     )}
                 </div>
 
-                {/* 학번 */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-800 mb-1.5">학번</label>
-                    <input
-                        type="text"
-                        name="studentId"
-                        value={formData.studentId}
-                        onChange={handleChange}
-                        placeholder="2025310000"
-                        maxLength={10}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-sm ${errors.studentId ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                    />
-                    {errors.studentId && (
-                        <p className="text-red-500 text-xs mt-1">{errors.studentId}</p>
-                    )}
+                {/* 입학년도, 학년, 학기 */}
+                <div className="grid grid-cols-3 gap-3">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1.5">입학년도</label>
+                        <select
+                            name="admissionYear"
+                            value={formData.admissionYear}
+                            onChange={handleChange}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm ${errors.admissionYear ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                        >
+                            <option value="">선택</option>
+                            {admissionYears.map((year) => (
+                                <option key={year} value={year.toString()}>
+                                    {year}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.admissionYear && (
+                            <p className="text-red-500 text-xs mt-1">{errors.admissionYear}</p>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1.5">현재 학년</label>
+                        <select
+                            name="currentGrade"
+                            value={formData.currentGrade}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                        >
+                            {[1, 2, 3, 4, 5, 6, 7].map((grade) => (
+                                <option key={grade} value={grade}>
+                                    {grade}학년
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1.5">학기</label>
+                        <select
+                            name="currentSemester"
+                            value={formData.currentSemester}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                        >
+                            <option value={1}>1학기</option>
+                            <option value={2}>2학기</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* 학과 */}
@@ -213,7 +254,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                         onChange={handleChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
                     >
-                        <option value="">소프트웨어학과</option>
+                        <option value="">선택</option>
                         {departments.map((dept) => (
                             <option key={dept} value={dept}>
                                 {dept}

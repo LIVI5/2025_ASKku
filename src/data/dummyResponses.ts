@@ -52,6 +52,10 @@ export const generateDummyResponse = (userMessage: string): string => {
         return responses[9]
     }
 
+    if (lowerMessage.includes('축제') || lowerMessage.includes('행사')) {
+        return "2025년 5월 15일에 대동제가 예정되어 있습니다."
+    }
+
     // Random response for other questions
     return responses[Math.floor(Math.random() * responses.length)]
 }
