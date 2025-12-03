@@ -28,7 +28,7 @@ const {
   TimetableItem,
   Bookmark,
   Schedule,
-  // ❌ 삭제: Conversation, Message
+  Calendar
 } = db;
 
 // USER → TIMETABLE (1:N)
@@ -49,11 +49,30 @@ if (User && Bookmark) {
   Bookmark.belongsTo(User, { foreignKey: "userID" });
 }
 
-// USER → SCHEDULE (1:N)
-if (User && Schedule) {
-  User.hasMany(Schedule, { foreignKey: "userID", onDelete: "CASCADE" });
-  Schedule.belongsTo(User, { foreignKey: "userID" });
+// USER → CALENDAR (1:N)
+if (User && Calendar) {
+  User.hasMany(Calendar, {
+    foreignKey: "userID",
+    onDelete: "CASCADE"
+  });
+
+  Calendar.belongsTo(User, {
+    foreignKey: "userID"
+  });
 }
+
+// CALENDAR → CALENDAR_ITEM (1:N)
+if (Calendar && Schedule) {
+  Calendar.hasMany(Schedule, {
+    foreignKey: "calendarID",
+    onDelete: "CASCADE"
+  });
+
+  Schedule.belongsTo(Calendar, {
+    foreignKey: "calendarID"
+  });
+}
+
 
 // =============================
 // EXPORT

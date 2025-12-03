@@ -22,33 +22,21 @@ module.exports = (sequelize) => {
 
   // Hook: User 생성 시 기본 시간표 및 캘린더 생성
   User.afterCreate(async (user, options) => {
-    const { Timetable, Schedule } = sequelize.models;
+    const { Timetable, Calendar } = sequelize.models;
 
     console.log(`Creating default calendar & timetable for user: ${user.userID}`);
 
-    // 🔹 기본 timetable 생성
     await Timetable.create({
       userID: user.userID,
       season: null,
-      courseName: null,
-      dayOfWeek: null,
-      startTime: null,
-      endTime: null,
-      location: null,
+      title: "기본 시간표",
     });
 
-    // 🔹 기본 캘린더 생성
-    await Schedule.create({
+    await Calendar.create({
       userID: user.userID,
       title: "기본 캘린더",
-      description: "자동 생성된 캘린더입니다.",
-      startDate: null,
-      endDate: null,
-      isAllDay: false,
-      type: "default",
-      repeatRule: null,
-      color: "#3B82F6",
-    });
+  });
+
 
     console.log(`Default calendar & timetable created for user: ${user.userID}`);
   });
