@@ -1,36 +1,36 @@
-// app.js ¶Ç´Â server.js
+// app.js ï¿½Ç´ï¿½ server.js
 
 const express = require("express");
 const app = express();
 
-// ¹Ìµé¿þ¾î ¼³Á¤
+// ï¿½Ìµï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ========== ¶ó¿ìÅÍ import ==========
-const timetableRoutes = require("./routes/timetable.routes");
-const bookmarkRoutes = require("./routes/bookmark.routes");
-const ragRoutes = require("./routes/rag.routes");
-const userRoutes = require("./routes/user.routes");
-const noticeRoutes = require("./routes/notice.routes");
+// ========== ï¿½ï¿½ï¿½ï¿½ï¿½ import ==========
+const timetableRoutes = require("./routes/timetable.route");
+const bookmarkRoutes = require("./routes/bookmark.route");
+const ragRoutes = require("./routes/rag.route");
+const userRoutes = require("./routes/user.route");
+const noticeRoutes = require("./routes/notice.route");
 
-// ========== ¶ó¿ìÅÍ µî·Ï ==========
+// ========== ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ==========
 app.use("/api/timetables", timetableRoutes);
 app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/rag", ragRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notices", noticeRoutes);
 
-// ========== ¿¡·¯ ÇÚµé¸µ ==========
+// ========== ï¿½ï¿½ï¿½ï¿½ ï¿½Úµé¸µ ==========
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: "¼­¹ö ¿À·ù°¡ ¹ß»ýÇß½À´Ï´Ù.",
+    message: "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ß»ï¿½ï¿½ß½ï¿½ï¿½Ï´ï¿½.",
   });
 });
 
-// ========== ¼­¹ö ½ÇÇà ==========
+// ========== ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ==========
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

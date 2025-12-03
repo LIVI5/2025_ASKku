@@ -12,22 +12,27 @@ module.exports = (sequelize) => {
       userID: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        comment: "ºÏ¸¶Å© ¼ÒÀ¯ÀÚ"
+        comment: "ë¶ë§ˆí¬ ì†Œìœ ì",
       },
       question: {
         type: DataTypes.TEXT,
         allowNull: false,
-        comment: "»ç¿ëÀÚ Áú¹®"
+        comment: "ì‚¬ìš©ì ì§ˆë¬¸",
       },
       answer: {
         type: DataTypes.TEXT,
         allowNull: false,
-        comment: "AI ´äº¯"
+        comment: "AI ë‹µë³€",
       },
       sources: {
         type: DataTypes.JSON,
         allowNull: true,
-        comment: "Âü°í ¹®¼­ ÃâÃ³ Á¤º¸"
+        comment: "ì°¸ê³  ë¬¸ì„œ ì¶œì²˜ ì •ë³´",
+      },
+      summary: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "í•µì‹¬ ìš”ì•½ ë‚´ìš© (LLM ìš”ì•½)",
       },
     },
     {

@@ -28,13 +28,15 @@ def get_retriever(score_threshold: float = 0.5):
         persist_directory=PERSIST_DIR,
         embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),
     )
+    return vectordb.as_retriever(search_kwargs={"k": 5})
+    """
     return vectordb.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={
             "score_threshold": score_threshold,
             "k": 5
         }
-    )
+    )"""
 
 
 def format_timetable(timetable: List[Dict]) -> str:
@@ -351,3 +353,30 @@ def translate_response(
             "translated_text": None,
             "error": f"번역 중 오류가 발생했습니다: {str(e)}"
         }
+        
+def summarize_bookmark(question, answer):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+
+    prompt = f"""
+다음 내용을 아래 형식으로 요약해줘.
+
+형식:
+내용:
+- (핵심 항목 3~7개 정도, 말 줄이기 없이 그대로 핵심 표현)
+일정:
+- (날짜나 기간이 있는 경우만 작성, 없으면 '없음')
+
+규칙:
+- 문장형 작성 금지 (예: ~할 수 있다, 좋다 금지)
+- 한 줄당 하나의 항목
+- 의미 중복 금지
+- 불필요한 단어 삭제
+- 설명 문구 생성 금지
+- 항목이 없으면 해당 섹션 '없음'만 남김
+
+질문: {question}
+답변: {answer}
+"""
+
+    return llm.invoke(prompt).content.strip()
+

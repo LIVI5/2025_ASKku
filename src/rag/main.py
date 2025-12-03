@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-from rag_engine import generate_rag_response, translate_response
+from rag_engine import generate_rag_response, translate_response, summarize_bookmark
 
 app = FastAPI(title="SKKU RAG API")
 
@@ -177,7 +177,35 @@ async def health_check():
         "message": "All systems operational" if db_exists else "Please run ingest.py first"
     }
 
+class BookmarkSummaryRequest(BaseModel):
+    question: str
+    answer: str
+
+
+@app.post("/bookmark/summary")
+async def bookmark_summary(req: BookmarkSummaryRequest):
+    """
+    북마크 내용 요약 API
+    question + answer 기반 JSON 요약 생성
+    """
+    try:
+        result = summarize_bookmark(req.question, req.answer)
+
+        if not result:
+            raise HTTPException(status_code=500, detail="요약 생성 실패")
+
+        return {
+            "success": True,
+            "summary": result
+        }
+
+    except Exception as e:
+        print("Bookmark summary error:", e)
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

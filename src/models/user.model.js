@@ -10,6 +10,7 @@ module.exports = (sequelize) => {
       password_hash: { type: DataTypes.STRING(255), allowNull: false },
       department: { type: DataTypes.STRING(80), allowNull: true },
       grade: { type: DataTypes.INTEGER, allowNull: true },
+      additional_info: { type: DataTypes.TEXT, allowNull: true },  
     },
     {
       tableName: "USER",
@@ -19,12 +20,13 @@ module.exports = (sequelize) => {
     }
   );
 
-  // Hook: User 생성 후 자동 데이터 생성
+  // Hook: User 생성 시 기본 시간표 및 캘린더 생성
   User.afterCreate(async (user, options) => {
     const { Timetable, Schedule } = sequelize.models;
 
     console.log(`Creating default calendar & timetable for user: ${user.userID}`);
 
+    // 🔹 기본 timetable 생성
     await Timetable.create({
       userID: user.userID,
       season: null,
@@ -35,6 +37,7 @@ module.exports = (sequelize) => {
       location: null,
     });
 
+    // 🔹 기본 캘린더 생성
     await Schedule.create({
       userID: user.userID,
       title: "기본 캘린더",
@@ -44,7 +47,7 @@ module.exports = (sequelize) => {
       isAllDay: false,
       type: "default",
       repeatRule: null,
-      color: "#3B82F6", // optional default theme color
+      color: "#3B82F6",
     });
 
     console.log(`Default calendar & timetable created for user: ${user.userID}`);
