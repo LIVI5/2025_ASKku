@@ -9,7 +9,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     const navigate = useNavigate()
-    const [emailOrId, setEmailOrId] = useState('')
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
     const [error, setError] = useState('')
@@ -21,7 +21,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         setLoading(true)
 
         try {
-            const response = await login(emailOrId, password)
+            const response = await login(email, password)
 
             if (response.success) {
                 navigate('/home')
@@ -57,10 +57,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
-                {/* 이메일 또는 학번 */}
+                {/* 이메일 */}
                 <div>
                     <label className="block text-sm font-medium text-gray-800 mb-2">
-                        이메일 또는 학번
+                        이메일
                     </label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -75,10 +75,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
                             </svg>
                         </span>
                         <input
-                            type="text"
-                            value={emailOrId}
-                            onChange={(e) => setEmailOrId(e.target.value)}
-                            placeholder="example@skku.edu 또는 2025123456"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="example@skku.edu"
                             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-sm"
                             required
                         />
