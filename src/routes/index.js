@@ -12,5 +12,6 @@ router.use("/timetable", require("./timetable.route"));
 router.use("/bookmarks", require("./bookmark.route"));
 router.use("/rag", require("./rag.route"));
 router.use("/notices", require("./notice.route"));
+router.use("/schedule", require("./schedule.route"));
 
 module.exports = router;

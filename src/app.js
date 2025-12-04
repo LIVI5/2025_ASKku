@@ -13,6 +13,7 @@ const bookmarkRoutes = require("./routes/bookmark.route");
 const ragRoutes = require("./routes/rag.route");
 const userRoutes = require("./routes/user.route");
 const noticeRoutes = require("./routes/notice.route");
+const scheduleRoutes = require("./routes/schedule.route");  
 
 // ========== ����� ��� ==========
 app.use("/api/timetables", timetableRoutes);
@@ -20,6 +21,7 @@ app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/rag", ragRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notices", noticeRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
 // ========== ���� �ڵ鸵 ==========
 app.use((err, req, res, next) => {

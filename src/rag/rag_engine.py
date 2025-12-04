@@ -380,3 +380,75 @@ def summarize_bookmark(question, answer):
 
     return llm.invoke(prompt).content.strip()
 
+
+def extract_schedule_from_dialog(question: str, answer: str):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+
+    prompt = f"""
+아래 대화를 분석하여 '일정' 데이터를 추출해줘.
+
+매우 중요한 규칙 (시간 포함):
+
+1. 날짜 + 시간 범위가 있는 경우:
+   예: "2025년 12월 6일 09:00~18:00"
+   - startDate = 2025-12-06
+   - endDate = 2025-12-06
+   - startTime = 09:00
+   - endTime = 18:00
+
+2. 날짜는 있고 시간이 없는 경우:
+   - startTime = null
+   - endTime = null
+   - isAllDay = true
+
+3. 기간만 있는 경우:
+   예: 2025.12.22 ~ 2026.01.31
+   - startTime = null
+   - endTime = null
+
+4. 시간 표현은 반드시 "HH:MM" 24시간 형식
+
+5. 날짜가 없으면 반드시 "null" 출력
+   (JSON 외 출력 금지)
+
+
+최종 출력 형식 (JSON ONLY)
+
+단일 일정이면:
+{{
+  "title": "...",
+  "startDate": "YYYY-MM-DD",
+  "endDate": "YYYY-MM-DD",
+  "startTime": "HH:MM" 또는 null,
+  "endTime": "HH:MM" 또는 null,
+  "isAllDay": true 또는 false,
+  "type": "exam | schedule | personal | class | 기타",
+  "location": "장소 또는 null"
+}}
+
+여러 일정이면 JSON 배열:
+[
+  {{
+    "title": "...",
+    "startDate": "...",
+    "endDate": "...",
+    "startTime": "...",
+    "endTime": "...",
+    "isAllDay": ...,
+    "type": "...",
+    "location": ...
+  }},
+  ...
+]
+
+대화 내용:
+
+질문: {question}
+답변: {answer}
+"""
+
+    return llm.invoke(prompt).content.strip()
+
+
+
+
