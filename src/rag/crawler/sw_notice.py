@@ -149,7 +149,7 @@ def notices_to_documents(notices):
                     "date": n["date"],
                     "post_num": n["post_num"],
                     "author": n.get("author", ""),
-                    "source": "CSE_NOTICE"
+                    "source": "SW_NOTICE"
                 }
             )
         )
