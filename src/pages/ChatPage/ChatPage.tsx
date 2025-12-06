@@ -86,6 +86,20 @@ export default function ChatPage() {
         }
     }
 
+    const handleTranslate = async (content: string) => {
+        setIsLoading(true)
+        try {
+            const translationRequest = `Translate the following text to English:\n\n${content}`
+            const aiResponse = await generateAIResponse(translationRequest)
+            const aiMessage = addMessage(aiResponse, 'assistant')
+            setMessages(prev => [...prev, aiMessage])
+        } catch (error) {
+            console.error('Error generating AI translation response:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const handleBookmark = (messageId: string) => {
         toggleMessageBookmark(messageId)
         const session = getCurrentSession()
@@ -211,6 +225,7 @@ export default function ChatPage() {
                                         message={message}
                                         onBookmark={handleBookmark}
                                         onScheduleAdd={handleScheduleAdd}
+                                        onTranslate={handleTranslate}
                                     />
                                 ))}
                                 {isLoading && (
