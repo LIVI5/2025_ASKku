@@ -1,4 +1,4 @@
-import { ChatMessage, ChatSession, Bookmark } from '../types'
+import { ChatMessage, ChatSession, Bookmark, ExtractedSchedule } from '../types'
 import { generateDummyResponse } from '../data/dummyResponses'
 
 const CHAT_SESSION_KEY = 'askku_chat_session'
@@ -128,4 +128,47 @@ export const toggleMessageBookmark = (messageId: string): void => {
         // Remove bookmark
         removeBookmark(messageId)
     }
+}
+
+// Schedule extraction from QA pairs (placeholder for GPT backend)
+export const extractSchedulesFromConversation = async (
+    question: string,
+    answer: string
+): Promise<ExtractedSchedule[]> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1200))
+
+    // TODO: Replace this dummy logic with real API integration
+    const today = new Date()
+    const formatDate = (date: Date) => date.toISOString().slice(0, 10)
+    const addDays = (date: Date, days: number) => {
+        const d = new Date(date)
+        d.setDate(d.getDate() + days)
+        return d
+    }
+
+    return [
+        {
+            id: `ext_${Date.now()}_1`,
+            title: '답변 요약 일정 1',
+            startDate: formatDate(addDays(today, 1)),
+            endDate: formatDate(addDays(today, 1)),
+            startTime: '09:00',
+            endTime: '10:00',
+            allDay: false,
+            description: answer.slice(0, 120) || '답변에서 추출한 일정 설명',
+            type: 'academic',
+            location: '온라인'
+        },
+        {
+            id: `ext_${Date.now()}_2`,
+            title: '답변 요약 일정 2',
+            startDate: formatDate(addDays(today, 3)),
+            endDate: formatDate(addDays(today, 4)),
+            allDay: true,
+            description: question.slice(0, 120) || '질문/답변 기반 일정',
+            type: 'event',
+            location: '캠퍼스'
+        }
+    ]
 }

@@ -1,34 +1,44 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import ChatMessage from '../../components/Chat/ChatMessage'
 import ChatInput from '../../components/Chat/ChatInput'
 import BookmarkSidebar from '../../components/Chat/BookmarkSidebar'
+import ScheduleSelectionModal from '../../components/Chat/ScheduleSelectionModal'
 import {
-    getCurrentSession,
-    createNewSession,
     addMessage,
-    generateAIResponse,
-    toggleMessageBookmark,
-    getBookmarks,
-    removeBookmark,
     clearAllBookmarks,
-    clearSession
+    clearSession,
+    createNewSession,
+    extractSchedulesFromConversation,
+    generateAIResponse,
+    getBookmarks,
+    getCurrentSession,
+    removeBookmark,
+    toggleMessageBookmark
 } from '../../services/chatService'
 import { addSchedule } from '../../services/myPageService'
-import { ChatMessage as ChatMessageType } from '../../types'
+import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
+
+const normalizeType = (type?: string): Schedule['type'] => {
+    if (type === 'academic' || type === 'personal' || type === 'subject') return type
+    if (type === 'event') return 'event'
+    return 'other'
+}
 
 export default function ChatPage() {
     const location = useLocation()
     const [messages, setMessages] = useState<ChatMessageType[]>([])
     const [bookmarks, setBookmarks] = useState(getBookmarks())
     const [isLoading, setIsLoading] = useState(false)
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+    const [isScheduleLoading, setIsScheduleLoading] = useState(false)
+    const [scheduleCandidates, setScheduleCandidates] = useState<ExtractedSchedule[]>([])
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const initialMessageSentRef = useRef(false)
 
-    // Load session on mount and handle initial message from HomePage
+    // 세션 로드 + 홈에서 넘어온 초기 메시지 처리
     useEffect(() => {
-        // Prevent multiple executions
         if (initialMessageSentRef.current) return
 
         let session = getCurrentSession()
@@ -36,46 +46,38 @@ export default function ChatPage() {
             session = createNewSession()
         }
 
-        // Handle initial message from HomePage
         const initialMessage = (location.state as any)?.initialMessage
         if (initialMessage) {
             initialMessageSentRef.current = true
 
-            // If there are existing messages, start a new chat
             if (session.messages.length > 0) {
                 clearSession()
                 session = createNewSession()
             }
 
-            // Set empty messages first
             setMessages([])
 
-            // Send the initial message after a brief delay
             setTimeout(() => {
                 handleSendMessage(initialMessage)
             }, 100)
 
-            // Clear state to prevent resending on back navigation
             window.history.replaceState({}, document.title)
         } else {
-            // Load existing session messages
             setMessages(session.messages)
         }
     }, [location.state])
 
-    // Auto scroll to bottom
+    // 자동 스크롤
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
 
     const handleSendMessage = async (content: string) => {
-        // Add user message
         const userMessage = addMessage(content, 'user')
         setMessages(prev => [...prev, userMessage])
         setIsLoading(true)
 
         try {
-            // Generate AI response
             const aiResponse = await generateAIResponse(content)
             const aiMessage = addMessage(aiResponse, 'assistant')
             setMessages(prev => [...prev, aiMessage])
@@ -109,52 +111,64 @@ export default function ChatPage() {
         setBookmarks(getBookmarks())
     }
 
-    const handleScheduleAdd = (messageId: string, content: string) => {
-        // Extract date from content
-        const extractDate = (text: string): string | null => {
-            const currentYear = new Date().getFullYear()
-
-            const format1 = /(\d{4})-(\d{1,2})-(\d{1,2})/
-            const format2 = /(\d{1,2})월\s?(\d{1,2})일/
-            const format3 = /(\d{4})년\s?(\d{1,2})월\s?(\d{1,2})일/
-
-            let match = text.match(format1)
-            if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
-
-            match = text.match(format3)
-            if (match) return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`
-
-            match = text.match(format2)
-            if (match) return `${currentYear}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`
-
-            return null
-        }
-
-        const dateString = extractDate(content)
-        if (!dateString) {
-            alert('날짜 정보를 찾을 수 없습니다.')
+    const handleScheduleExtract = async (messageId: string) => {
+        const messageIndex = messages.findIndex(m => m.id === messageId)
+        if (messageIndex <= 0) {
+            alert('바로 앞의 질문과 답변이 필요합니다.')
             return
         }
 
-        // Find the user message before this assistant message
-        const messageIndex = messages.findIndex(m => m.id === messageId)
-        const userMessage = messageIndex > 0 ? messages[messageIndex - 1] : null
-        const title = userMessage?.content || '챗봇 일정'
+        const question = messages[messageIndex - 1]?.content || ''
+        const answer = messages[messageIndex]?.content || ''
 
-        addSchedule({
-            title: title.substring(0, 50), // Limit title length
-            date: dateString,
-            type: 'academic',
-            color: '#3B82F6'
+        setIsScheduleModalOpen(true)
+        setIsScheduleLoading(true)
+        setScheduleCandidates([])
+
+        try {
+            const extracted = await extractSchedulesFromConversation(question, answer)
+            setScheduleCandidates(extracted)
+        } catch (error) {
+            console.error('Error extracting schedules:', error)
+            alert('일정 추출 중 오류가 발생했습니다.')
+        } finally {
+            setIsScheduleLoading(false)
+        }
+    }
+
+    const handleScheduleConfirm = (selected: ExtractedSchedule[]) => {
+        if (!selected.length) {
+            setIsScheduleModalOpen(false)
+            return
+        }
+
+        selected.forEach(item => {
+            const type = normalizeType(item.type)
+            addSchedule({
+                title: item.title || '새 일정',
+                date: item.startDate,
+                startDate: item.startDate,
+                endDate: item.endDate || item.startDate,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                allDay: item.allDay ?? false,
+                description: item.description,
+                type,
+                location: item.location,
+                subject: type === 'subject' ? item.title : undefined,
+                color: undefined,
+                sourceId: item.id
+            })
         })
 
-        alert(`일정이 등록되었습니다.\n날짜: ${dateString}\n내용: ${title}`)
+        setIsScheduleModalOpen(false)
+        setScheduleCandidates([])
+        alert(`${selected.length}개의 일정이 캘린더에 추가되었습니다.`)
     }
 
     const handleRemoveBookmark = (bookmarkId: string) => {
         removeBookmark(bookmarkId)
         setBookmarks(getBookmarks())
-        // Update messages to reflect bookmark removal
         const session = getCurrentSession()
         if (session) {
             setMessages([...session.messages])
@@ -162,10 +176,9 @@ export default function ChatPage() {
     }
 
     const handleClearAllBookmarks = () => {
-        if (window.confirm('모든 북마크를 삭제하시겠습니까?')) {
+        if (window.confirm('모든 북마크를 삭제하시겠어요?')) {
             clearAllBookmarks()
             setBookmarks([])
-            // Update messages to reflect all bookmarks cleared
             const session = getCurrentSession()
             if (session) {
                 setMessages([...session.messages])
@@ -178,7 +191,16 @@ export default function ChatPage() {
         const newSession = createNewSession()
         setMessages(newSession.messages)
         setIsLoading(false)
+        setIsScheduleModalOpen(false)
+        setScheduleCandidates([])
+        setIsScheduleLoading(false)
         initialMessageSentRef.current = false
+    }
+
+    const closeScheduleModal = () => {
+        setIsScheduleModalOpen(false)
+        setScheduleCandidates([])
+        setIsScheduleLoading(false)
     }
 
     return (
@@ -207,7 +229,6 @@ export default function ChatPage() {
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto px-6 py-6">
                     {messages.length === 0 ? (
-                        // Empty State
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <div className="w-20 h-20 rounded-full bg-askku-primary flex items-center justify-center mb-4">
                                 <img src={logoImage} alt="ASKku Logo" className="w-10 h-10 object-contain" />
@@ -224,7 +245,7 @@ export default function ChatPage() {
                                         key={message.id}
                                         message={message}
                                         onBookmark={handleBookmark}
-                                        onScheduleAdd={handleScheduleAdd}
+                                        onScheduleExtract={handleScheduleExtract}
                                         onTranslate={handleTranslate}
                                     />
                                 ))}
@@ -259,6 +280,14 @@ export default function ChatPage() {
                 bookmarks={bookmarks}
                 onRemove={handleRemoveBookmark}
                 onClearAll={handleClearAllBookmarks}
+            />
+
+            <ScheduleSelectionModal
+                isOpen={isScheduleModalOpen}
+                isLoading={isScheduleLoading}
+                schedules={scheduleCandidates}
+                onClose={closeScheduleModal}
+                onConfirm={handleScheduleConfirm}
             />
         </div>
     )

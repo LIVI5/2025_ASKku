@@ -1,10 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Schedule } from '../../types'
-import { getSchedules, deleteSchedule } from '../../services/myPageService'
+import { deleteSchedule, getSchedules } from '../../services/myPageService'
 
 interface CalendarViewProps {
     onAddClick: () => void
     onScheduleClick: (schedule: Schedule) => void
+}
+
+const isDateInRange = (date: string, schedule: Schedule) => {
+    const start = schedule.startDate || schedule.date || schedule.endDate || date
+    const end = schedule.endDate || schedule.startDate || schedule.date || date
+    return date >= start && date <= end
 }
 
 export default function CalendarView({ onAddClick, onScheduleClick }: CalendarViewProps) {
@@ -20,7 +26,6 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
             setSchedules(allSchedules.filter(s => s.type === (selectedType === 'course' ? 'subject' : selectedType)))
         }
     }, [selectedType])
-
 
     const getDaysInMonth = (year: number, month: number) => {
         return new Date(year, month + 1, 0).getDate()
@@ -64,7 +69,7 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const daySchedules = schedules.filter(s => s.date === dateStr)
+            const daySchedules = schedules.filter(s => isDateInRange(dateStr, s))
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
 
             days.push(
