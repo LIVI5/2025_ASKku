@@ -154,7 +154,8 @@ export const addTimetableItem = (item: Omit<TimetableItem, 'id'>): TimetableItem
 
     const newItem: TimetableItem = {
         ...item,
-        id: `tt_${Date.now()}`
+        id: `tt_${Date.now()}`,
+        alias: item.alias || ''
     }
 
     allItems.push(newItem)
