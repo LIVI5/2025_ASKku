@@ -4,6 +4,34 @@ import { dummyTimetables } from '../data/dummyData'
 const SCHEDULES_KEY = 'askku_schedules'
 const TIMETABLES_KEY = 'askku_timetables'
 
+const getDefaultColor = (type: Schedule['type']) => {
+    if (type === 'academic') return '#3B82F6'
+    if (type === 'personal') return '#10B981'
+    if (type === 'subject') return '#8B5CF6'
+    if (type === 'event') return '#F97316'
+    return '#F59E0B'
+}
+
+const normalizeSchedule = (raw: Schedule | (Omit<Schedule, 'id'> & { id?: string })): Schedule => {
+    const startDate = raw.startDate || raw.date
+    const endDate = raw.endDate || startDate
+    const type: Schedule['type'] =
+        raw.type === 'academic' || raw.type === 'personal' || raw.type === 'subject' || raw.type === 'event'
+            ? raw.type
+            : 'other'
+
+    return {
+        ...raw,
+        id: raw.id ?? `sch_${Date.now()}`,
+        date: raw.date || startDate || endDate || new Date().toISOString().slice(0, 10),
+        startDate: startDate || raw.date,
+        endDate: endDate || startDate || raw.date,
+        type,
+        allDay: raw.allDay ?? true,
+        color: raw.color || getDefaultColor(type)
+    }
+}
+
 // Dummy Data Generation
 const generateDummySchedules = (): Schedule[] => {
     const today = new Date()
@@ -11,7 +39,7 @@ const generateDummySchedules = (): Schedule[] => {
     const month = String(today.getMonth() + 1).padStart(2, '0')
 
     return [
-        {
+        normalizeSchedule({
             id: 'sch_1',
             title: '데이터베이스 과제 마감',
             date: `${year}-${month}-15`,
@@ -19,23 +47,23 @@ const generateDummySchedules = (): Schedule[] => {
 - 요구사항 명세서 작성`,
             type: 'academic',
             color: '#EF4444' // Red
-        },
-        {
+        }),
+        normalizeSchedule({
             id: 'sch_2',
             title: '동아리 회의',
             date: `${year}-${month}-20`,
             description: '중간 발표 준비',
             type: 'personal',
             color: '#3B82F6' // Blue
-        },
-        {
+        }),
+        normalizeSchedule({
             id: 'sch_3',
             title: '중간고사 시작',
             date: `${year}-${month}-25`,
             description: '',
             type: 'academic',
             color: '#F59E0B' // Amber
-        }
+        })
     ]
 }
 
@@ -102,7 +130,14 @@ export const getSchedules = (): Schedule[] => {
         saveSchedules(dummy)
         return dummy
     }
-    return JSON.parse(json)
+    try {
+        const parsed: Schedule[] = JSON.parse(json)
+        return parsed.map(normalizeSchedule)
+    } catch {
+        const dummy = generateDummySchedules()
+        saveSchedules(dummy)
+        return dummy
+    }
 }
 
 export const saveSchedules = (schedules: Schedule[]): void => {
@@ -111,10 +146,10 @@ export const saveSchedules = (schedules: Schedule[]): void => {
 
 export const addSchedule = (schedule: Omit<Schedule, 'id'>): Schedule => {
     const schedules = getSchedules()
-    const newSchedule: Schedule = {
+    const newSchedule = normalizeSchedule({
         ...schedule,
         id: `sch_${Date.now()}`
-    }
+    })
     schedules.push(newSchedule)
     saveSchedules(schedules)
     return newSchedule

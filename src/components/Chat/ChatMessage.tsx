@@ -4,26 +4,15 @@ import logoImage from '../../assets/logo_nonbg.svg'
 interface ChatMessageProps {
     message: ChatMessageType
     onBookmark?: (messageId: string) => void
-    onScheduleAdd?: (messageId: string, content: string) => void
+    onScheduleExtract?: (messageId: string) => void
 }
 
-export default function ChatMessage({ message, onBookmark, onScheduleAdd }: ChatMessageProps) {
+export default function ChatMessage({ message, onBookmark, onScheduleExtract }: ChatMessageProps) {
     const isUser = message.role === 'user'
     const time = new Date(message.timestamp).toLocaleTimeString('ko-KR', {
         hour: '2-digit',
         minute: '2-digit'
     })
-
-    // Check if message contains date information
-    const hasDate = () => {
-        if (isUser) return false
-        const datePatterns = [
-            /(\d{4})-(\d{1,2})-(\d{1,2})/,
-            /(\d{1,2})월\s?(\d{1,2})일/,
-            /(\d{4})년\s?(\d{1,2})월\s?(\d{1,2})일/
-        ]
-        return datePatterns.some(pattern => pattern.test(message.content))
-    }
 
     return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
@@ -57,17 +46,17 @@ export default function ChatMessage({ message, onBookmark, onScheduleAdd }: Chat
                                     : 'text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
-                                {message.isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
+                                {message.isBookmarked ? '북마크됨' : '북마크'}
                             </button>
                         )}
-                        {!isUser && onScheduleAdd && hasDate() && (
+                        {!isUser && onScheduleExtract && (
                             <button
-                                onClick={() => onScheduleAdd(message.id, message.content)}
+                                onClick={() => onScheduleExtract(message.id)}
                                 className="text-xs px-2 py-0.5 rounded transition-colors text-gray-500 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1"
-                                title="일정 등록"
+                                title="일정 추출"
                             >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z" fill="currentColor" />
+                                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 1.99 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z" fill="currentColor" />
                                 </svg>
                                 일정
                             </button>
