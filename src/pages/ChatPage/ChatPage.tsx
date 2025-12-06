@@ -37,8 +37,8 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const initialMessageSentRef = useRef(false)
 
+    // 세션 로드 + 홈에서 넘어온 초기 메시지 처리
     useEffect(() => {
-        // Prevent multiple executions
         if (initialMessageSentRef.current) return
 
         let session = getCurrentSession()
@@ -46,34 +46,28 @@ export default function ChatPage() {
             session = createNewSession()
         }
 
-        // Handle initial message from HomePage
         const initialMessage = (location.state as any)?.initialMessage
         if (initialMessage) {
             initialMessageSentRef.current = true
 
-            // If there are existing messages, start a new chat
             if (session.messages.length > 0) {
                 clearSession()
                 session = createNewSession()
             }
 
-            // Set empty messages first
             setMessages([])
 
-            // Send the initial message after a brief delay
             setTimeout(() => {
                 handleSendMessage(initialMessage)
             }, 100)
 
-            // Clear state to prevent resending on back navigation
             window.history.replaceState({}, document.title)
         } else {
-            // Load existing session messages
             setMessages(session.messages)
         }
     }, [location.state])
 
-    // Auto scroll to bottom
+    // 자동 스크롤
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
@@ -89,6 +83,20 @@ export default function ChatPage() {
             setMessages(prev => [...prev, aiMessage])
         } catch (error) {
             console.error('Error generating AI response:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleTranslate = async (content: string) => {
+        setIsLoading(true)
+        try {
+            const translationRequest = `Translate the following text to English:\n\n${content}`
+            const aiResponse = await generateAIResponse(translationRequest)
+            const aiMessage = addMessage(aiResponse, 'assistant')
+            setMessages(prev => [...prev, aiMessage])
+        } catch (error) {
+            console.error('Error generating AI translation response:', error)
         } finally {
             setIsLoading(false)
         }
@@ -226,7 +234,7 @@ export default function ChatPage() {
                                 <img src={logoImage} alt="ASKku Logo" className="w-10 h-10 object-contain" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">무엇을 도와드릴까요?</h2>
-                            <p className="text-gray-500">수업과 관련된 정보 등을 물어보세요.</p>
+                            <p className="text-gray-500">학과와 관련된 정보 아무거나 물어보세요!</p>
                         </div>
                     ) : (
                         <>
@@ -238,6 +246,7 @@ export default function ChatPage() {
                                         message={message}
                                         onBookmark={handleBookmark}
                                         onScheduleExtract={handleScheduleExtract}
+                                        onTranslate={handleTranslate}
                                     />
                                 ))}
                                 {isLoading && (

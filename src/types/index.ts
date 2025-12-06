@@ -17,6 +17,7 @@ export interface User {
     currentSemester: number
     department: string
     createdAt: string
+    introduction?: string
 }
 
 export interface RegisterData {
@@ -109,4 +110,5 @@ export interface TimetableItem {
     endTime: string // HH:mm
     semester: string // e.g., "2025-1"
     color?: string
+    alias?: string
 }
