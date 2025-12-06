@@ -3,6 +3,7 @@ import CalendarView from '../../components/MyPage/CalendarView'
 import TimetableView from '../../components/MyPage/TimetableView'
 import AddScheduleModal from '../../components/MyPage/AddScheduleModal'
 import AddTimetableModal from '../../components/MyPage/AddTimetableModal'
+import EditInformationModal from '../../components/MyPage/EditInformationModal'
 import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
 import { Schedule } from '../../types'
 
@@ -10,6 +11,7 @@ export default function MyPage() {
     const [view, setView] = useState<'calendar' | 'timetable'>('calendar')
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+    const [isEditInformationModalOpen, setIsEditInformationModalOpen] = useState(false)
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
     const [refreshKey, setRefreshKey] = useState(0) // Force re-render on data change
@@ -34,6 +36,12 @@ export default function MyPage() {
             {/* Header */}
             <div className="bg-white border-b border-gray-200 h-[72px] px-6 flex items-center justify-between flex-shrink-0">
                 <h1 className="text-xl font-bold text-gray-800">마이페이지</h1>
+                <button
+                    onClick={() => setIsEditInformationModalOpen(true)}
+                    className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
+                >
+                    내 정보 관리
+                </button>
             </div>
 
             {/* Content Area */}
@@ -90,6 +98,11 @@ export default function MyPage() {
                 isOpen={isTimetableModalOpen}
                 onClose={() => setIsTimetableModalOpen(false)}
                 onSuccess={handleRefresh}
+            />
+            <EditInformationModal
+                isOpen={isEditInformationModalOpen}
+                onClose={() => setIsEditInformationModalOpen(false)}
+                onSave={handleRefresh}
             />
             <ScheduleDetailModal
                 isOpen={isDetailModalOpen}

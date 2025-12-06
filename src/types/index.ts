@@ -17,6 +17,7 @@ export interface User {
     currentSemester: number
     department: string
     createdAt: string
+    introduction?: string
 }
 
 export interface RegisterData {
