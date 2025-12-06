@@ -36,26 +36,27 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
 
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs text-gray-500">{time}</span>
-                        {!isUser && onBookmark && (
+                           {!isUser && onBookmark && (
                             <button
                                 onClick={() => onBookmark(message.id)}
-                                className={`text-xs px-2 py-0.5 rounded transition-colors ${message.isBookmarked
+                                className={`text-xs px-2 py-0.5 rounded transition-colors inline-flex items-center gap-1 ${message.isBookmarked
                                     ? 'bg-yellow-100 text-yellow-700'
                                     : 'text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
-                                {message.isBookmarked ? '북마크됨' : '북마크'}
-                            </button>
-                        )}
-                        {!isUser && onTranslate && (
-                            <button
-                                onClick={() => onTranslate(message.content)}
-                                className="text-xs px-2 py-0.5 rounded transition-colors text-gray-500 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1"
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                                <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill={message.isBookmarked ? 'currentColor' : 'none'}
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                                 </svg>
-                                Translate
+                                {message.isBookmarked ? '북마크됨' : '북마크'}
                             </button>
                         )}
                         {!isUser && onScheduleExtract && (
@@ -68,6 +69,17 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                     <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 1.99 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z" fill="currentColor" />
                                 </svg>
                                 일정
+                            </button>
+                        )}
+                        {!isUser && onTranslate && (
+                            <button
+                                onClick={() => onTranslate(message.content)}
+                                className="text-xs px-2 py-0.5 rounded transition-colors text-gray-500 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                                </svg>
+                                번역
                             </button>
                         )}
                     </div>

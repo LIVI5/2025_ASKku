@@ -111,18 +111,6 @@ export default function TimetableView({ onAddClick }: TimetableViewProps) {
                 </table>
             </div>
 
-            {/* Empty State */}
-            {timetable.length === 0 && (
-                <div className="text-center py-12">
-                    <p className="text-gray-500 mb-4">등록된 시간표가 없습니다.</p>
-                    <button
-                        onClick={onAddClick}
-                        className="text-askku-primary hover:underline font-medium"
-                    >
-                        첫 수업 추가하기
-                    </button>
-                </div>
-            )}
         </div>
     )
 }
