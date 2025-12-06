@@ -3,15 +3,29 @@ import CalendarView from '../../components/MyPage/CalendarView'
 import TimetableView from '../../components/MyPage/TimetableView'
 import AddScheduleModal from '../../components/MyPage/AddScheduleModal'
 import AddTimetableModal from '../../components/MyPage/AddTimetableModal'
+import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
+import { Schedule } from '../../types'
 
 export default function MyPage() {
     const [view, setView] = useState<'calendar' | 'timetable'>('calendar')
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+    const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
     const [refreshKey, setRefreshKey] = useState(0) // Force re-render on data change
 
     const handleRefresh = () => {
         setRefreshKey(prev => prev + 1)
+    }
+
+    const handleScheduleClick = (schedule: Schedule) => {
+        setSelectedSchedule(schedule)
+        setIsDetailModalOpen(true)
+    }
+
+    const handleCloseDetailModal = () => {
+        setIsDetailModalOpen(false)
+        setSelectedSchedule(null)
     }
 
     return (
@@ -55,7 +69,10 @@ export default function MyPage() {
                     {/* Main View */}
                     <div key={refreshKey}>
                         {view === 'calendar' ? (
-                            <CalendarView onAddClick={() => setIsScheduleModalOpen(true)} />
+                            <CalendarView
+                                onAddClick={() => setIsScheduleModalOpen(true)}
+                                onScheduleClick={handleScheduleClick}
+                            />
                         ) : (
                             <TimetableView onAddClick={() => setIsTimetableModalOpen(true)} />
                         )}
@@ -73,6 +90,11 @@ export default function MyPage() {
                 isOpen={isTimetableModalOpen}
                 onClose={() => setIsTimetableModalOpen(false)}
                 onSuccess={handleRefresh}
+            />
+            <ScheduleDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={handleCloseDetailModal}
+                schedule={selectedSchedule}
             />
         </div>
     )
