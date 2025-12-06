@@ -1,5 +1,10 @@
 import { ChatMessage as ChatMessageType } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import remarkBreaks from 'remark-breaks'
 
 interface ChatMessageProps {
     message: ChatMessageType
@@ -29,9 +34,18 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                         className={`px-4 py-3 rounded-lg ${isUser
                             ? 'bg-askku-primary text-white'
                             : 'bg-gray-100 text-gray-800'
-                            }`}
+                        }`}
                     >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <div className="text-sm whitespace-pre-wrap">
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                            >
+                            {message.content}
+                        </ReactMarkdown>
+                    </div>
+
+
                     </div>
 
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>

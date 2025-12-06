@@ -38,12 +38,19 @@ export interface AuthResponse {
     message?: string
 }
 
-export interface ChatMessage {
-    id: string
-    role: 'user' | 'assistant'
-    content: string
-    timestamp: string
-    isBookmarked?: boolean
+export type ChatMessage = {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: string;
+    isBookmarked: boolean;
+    format: 'text' | 'markdown' | 'sources';
+};
+
+export interface BookmarkSummary {
+    short?: string
+    key_points?: string[]
+    action_items?: string[]
 }
 
 export interface Bookmark {
@@ -51,13 +58,15 @@ export interface Bookmark {
     question: string
     answer: string
     timestamp: string
+    summary?: BookmarkSummary
 }
 
-export interface ChatSession {
-    id: string
-    messages: ChatMessage[]
-    createdAt: string
-}
+
+export type ChatSession = {
+    id: string;
+    messages: ChatMessage[];
+    createdAt: string;
+};
 
 export interface Schedule {
     id: string
@@ -76,18 +85,18 @@ export interface Schedule {
     subject?: string
 }
 
-export interface ExtractedSchedule {
-    id: string
-    title: string
-    startDate: string
-    endDate: string
-    startTime?: string
-    endTime?: string
-    allDay?: boolean
-    description?: string
-    type?: string
-    location?: string
-}
+export type ExtractedSchedule = {
+    id: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+    startTime?: string;
+    endTime?: string;
+    allDay?: boolean;
+    description?: string;
+    type?: string;
+    location?: string;
+};
 
 export interface Subject {
     id: string
