@@ -1,4 +1,5 @@
-import { Schedule, TimetableItem } from '../types'
+import { Schedule, Timetable, TimetableItem } from '../types'
+import { dummyTimetables } from '../data/dummyData'
 
 const SCHEDULES_KEY = 'askku_schedules'
 const TIMETABLES_KEY = 'askku_timetables'
@@ -14,6 +15,8 @@ const generateDummySchedules = (): Schedule[] => {
             id: 'sch_1',
             title: '데이터베이스 과제 마감',
             date: `${year}-${month}-15`,
+            description: `- ERD 설계
+- 요구사항 명세서 작성`,
             type: 'academic',
             color: '#EF4444' // Red
         },
@@ -21,6 +24,7 @@ const generateDummySchedules = (): Schedule[] => {
             id: 'sch_2',
             title: '동아리 회의',
             date: `${year}-${month}-20`,
+            description: '중간 발표 준비',
             type: 'personal',
             color: '#3B82F6' // Blue
         },
@@ -28,6 +32,7 @@ const generateDummySchedules = (): Schedule[] => {
             id: 'sch_3',
             title: '중간고사 시작',
             date: `${year}-${month}-25`,
+            description: '',
             type: 'academic',
             color: '#F59E0B' // Amber
         }
@@ -118,6 +123,10 @@ export const addSchedule = (schedule: Omit<Schedule, 'id'>): Schedule => {
 export const deleteSchedule = (id: string): void => {
     const schedules = getSchedules().filter(s => s.id !== id)
     saveSchedules(schedules)
+}
+
+export const getTimetableData = (): Timetable[] => {
+    return dummyTimetables
 }
 
 // Timetable Management

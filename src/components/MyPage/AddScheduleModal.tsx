@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { addSchedule } from '../../services/myPageService'
+import { useState, useEffect } from 'react'
+import { addSchedule, getTimetableData } from '../../services/myPageService'
+import { Timetable, Subject, Schedule } from '../../types'
 
 interface AddScheduleModalProps {
     isOpen: boolean
@@ -10,25 +11,64 @@ interface AddScheduleModalProps {
 export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModalProps) {
     const [title, setTitle] = useState('')
     const [date, setDate] = useState('')
-    const [type, setType] = useState<'personal' | 'academic'>('personal')
+    const [description, setDescription] = useState('')
+    const [type, setType] = useState<Schedule['type']>('personal')
     const [color, setColor] = useState('#3B82F6')
 
+    const [timetables, setTimetables] = useState<Timetable[]>([])
+    const [selectedSemester, setSelectedSemester] = useState('')
+    const [subjects, setSubjects] = useState<Subject[]>([])
+    const [selectedSubject, setSelectedSubject] = useState('')
+
+    useEffect(() => {
+        if (isOpen) {
+            const sortedTimetables = getTimetableData().sort((a, b) => b.semester.localeCompare(a.semester));
+            setTimetables(sortedTimetables);
+        }
+    }, [isOpen])
+
+    useEffect(() => {
+        if (selectedSemester) {
+            const timetable = timetables.find((t) => t.semester === selectedSemester)
+            setSubjects(timetable ? timetable.subjects : [])
+        } else {
+            setSubjects([])
+        }
+        setSelectedSubject('') // Reset subject when semester changes
+    }, [selectedSemester, timetables])
+
     if (!isOpen) return null
+
+    const resetState = () => {
+        setTitle('')
+        setDate('')
+        setDescription('')
+        setType('personal')
+        setColor('#3B82F6')
+        setSelectedSemester('')
+        setSelectedSubject('')
+        setSubjects([])
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         if (!title || !date) return
 
-        addSchedule({
+        const scheduleData: Omit<Schedule, 'id'> = {
             title,
             date,
+            description,
             type,
             color
-        })
+        }
 
-        setTitle('')
-        setDate('')
-        setType('personal')
+        if (type === 'subject') {
+            scheduleData.semester = selectedSemester
+            scheduleData.subject = selectedSubject
+        }
+
+        addSchedule(scheduleData)
+        resetState()
         onSuccess()
         onClose()
     }
@@ -60,8 +100,18 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                         />
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                            placeholder="일정에 대한 설명을 입력하세요"
+                            rows={3}
+                        />
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">유형</label>
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap gap-4">
                             <label className="flex items-center gap-2">
                                 <input
                                     type="radio"
@@ -80,8 +130,55 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                                 />
                                 <span className="text-sm text-gray-700">학사 일정</span>
                             </label>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    checked={type === 'subject'}
+                                    onChange={() => setType('subject')}
+                                    className="text-askku-primary focus:ring-askku-primary"
+                                />
+                                <span className="text-sm text-gray-700">과목 일정</span>
+                            </label>
                         </div>
                     </div>
+
+                    {type === 'subject' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">학기</label>
+                                <select
+                                    value={selectedSemester}
+                                    onChange={(e) => setSelectedSemester(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                                >
+                                    <option value="">학기 선택 안함</option>
+                                    {timetables.map((t) => (
+                                        <option key={t.semester} value={t.semester}>
+                                            {t.semester}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {selectedSemester && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">과목</label>
+                                    <select
+                                        value={selectedSubject}
+                                        onChange={(e) => setSelectedSubject(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                                    >
+                                        <option value="">과목 없음</option>
+                                        {subjects.map((s) => (
+                                            <option key={s.id} value={s.name}>
+                                                {s.name} ({s.professor})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">색상</label>
                         <div className="flex gap-2">
@@ -116,3 +213,4 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         </div>
     )
 }
+

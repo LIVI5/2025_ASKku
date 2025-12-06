@@ -62,8 +62,22 @@ export interface Schedule {
     id: string
     title: string
     date: string // YYYY-MM-DD
-    type: 'personal' | 'academic'
+    type: 'personal' | 'academic' | 'subject'
+    description?: string
     color?: string
+    semester?: string
+    subject?: string
+}
+
+export interface Subject {
+    id: string
+    name: string
+    professor: string
+}
+
+export interface Timetable {
+    semester: string
+    subjects: Subject[]
 }
 
 export interface TimetableItem {

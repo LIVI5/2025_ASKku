@@ -4,9 +4,10 @@ import { getSchedules, deleteSchedule } from '../../services/myPageService'
 
 interface CalendarViewProps {
     onAddClick: () => void
+    onScheduleClick: (schedule: Schedule) => void
 }
 
-export default function CalendarView({ onAddClick }: CalendarViewProps) {
+export default function CalendarView({ onAddClick, onScheduleClick }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [schedules, setSchedules] = useState<Schedule[]>([])
 
@@ -64,9 +65,10 @@ export default function CalendarView({ onAddClick }: CalendarViewProps) {
                         {daySchedules.map(schedule => (
                             <div
                                 key={schedule.id}
+                                onClick={() => onScheduleClick(schedule)}
                                 className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
                                 style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
-                                title={schedule.title}
+                                title={`${schedule.title}\n${schedule.description || ''}`}
                             >
                                 <span className="truncate">{schedule.title}</span>
                                 <button
