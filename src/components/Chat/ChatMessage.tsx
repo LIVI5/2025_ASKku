@@ -5,9 +5,10 @@ interface ChatMessageProps {
     message: ChatMessageType
     onBookmark?: (messageId: string) => void
     onScheduleAdd?: (messageId: string, content: string) => void
+    onTranslate?: (content: string) => void
 }
 
-export default function ChatMessage({ message, onBookmark, onScheduleAdd }: ChatMessageProps) {
+export default function ChatMessage({ message, onBookmark, onScheduleAdd, onTranslate }: ChatMessageProps) {
     const isUser = message.role === 'user'
     const time = new Date(message.timestamp).toLocaleTimeString('ko-KR', {
         hour: '2-digit',
@@ -46,7 +47,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleAdd }: Chat
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     </div>
 
-                    {/* Timestamp, Bookmark, and Schedule */}
+                    {/* Timestamp, Bookmark, Schedule, and Translate */}
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs text-gray-500">{time}</span>
                         {!isUser && onBookmark && (
@@ -58,6 +59,17 @@ export default function ChatMessage({ message, onBookmark, onScheduleAdd }: Chat
                                     }`}
                             >
                                 {message.isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
+                            </button>
+                        )}
+                        {!isUser && onTranslate && (
+                            <button
+                                onClick={() => onTranslate(message.content)}
+                                className="text-xs px-2 py-0.5 rounded transition-colors text-gray-500 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-1"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                                </svg>
+                                Translate
                             </button>
                         )}
                         {!isUser && onScheduleAdd && hasDate() && (

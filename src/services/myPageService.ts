@@ -1,5 +1,6 @@
 import { Schedule, Timetable, TimetableItem } from '../types'
 import { dummyTimetables } from '../data/dummyData'
+import { getCurrentUser } from '../services/authService'
 
 const SCHEDULES_KEY = 'askku_schedules'
 const TIMETABLES_KEY = 'askku_timetables'
@@ -154,7 +155,8 @@ export const addTimetableItem = (item: Omit<TimetableItem, 'id'>): TimetableItem
 
     const newItem: TimetableItem = {
         ...item,
-        id: `tt_${Date.now()}`
+        id: `tt_${Date.now()}`,
+        alias: item.alias || ''
     }
 
     allItems.push(newItem)
@@ -169,4 +171,22 @@ export const deleteTimetableItem = (id: string): void => {
         const filtered = allItems.filter(item => item.id !== id)
         saveAllTimetables(filtered)
     }
+}
+
+// User Information Management
+const getUserInformationKey = (userId: string): string => `askku_user_info_${userId}`
+
+export const saveUserInformation = (information: string): void => {
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+        localStorage.setItem(getUserInformationKey(currentUser.id), information)
+    }
+}
+
+export const getUserInformation = (): string | null => {
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+        return localStorage.getItem(getUserInformationKey(currentUser.id))
+    }
+    return null
 }

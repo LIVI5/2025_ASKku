@@ -15,6 +15,7 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
     const [endTime, setEndTime] = useState('10:30')
     const [semester, setSemester] = useState('2025-2')
     const [color, setColor] = useState('#DBEAFE')
+    const [alias, setAlias] = useState('')
 
     if (!isOpen) return null
 
@@ -29,7 +30,8 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
             startTime,
             endTime,
             semester,
-            color
+            color,
+            alias
         })
 
         setSubject('')
@@ -37,6 +39,7 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
         setDay('Mon')
         setStartTime('09:00')
         setEndTime('10:30')
+        setAlias('')
         onSuccess()
         onClose()
     }
@@ -61,8 +64,18 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                            placeholder="예: 데이터베이스"
+                            placeholder="예: 데이터베이스개론"
                             required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">별칭 (선택)</label>
+                        <input
+                            type="text"
+                            value={alias}
+                            onChange={(e) => setAlias(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                            placeholder="예: 데베개"
                         />
                     </div>
                     <div>
