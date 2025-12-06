@@ -77,7 +77,6 @@ const generateDummyTimetables = (): TimetableItem[] => {
             day: 'Mon',
             startTime: '09:00',
             endTime: '10:30',
-            semester: '2025-2',
             color: '#DBEAFE' // Blue-100
         },
         {
@@ -87,7 +86,6 @@ const generateDummyTimetables = (): TimetableItem[] => {
             day: 'Tue',
             startTime: '10:30',
             endTime: '12:00',
-            semester: '2025-2',
             color: '#F3E8FF' // Purple-100
         },
         {
@@ -97,7 +95,6 @@ const generateDummyTimetables = (): TimetableItem[] => {
             day: 'Wed',
             startTime: '09:00',
             endTime: '10:30',
-            semester: '2025-2',
             color: '#DCFCE7' // Green-100
         },
         {
@@ -107,7 +104,6 @@ const generateDummyTimetables = (): TimetableItem[] => {
             day: 'Thu',
             startTime: '10:30',
             endTime: '12:00',
-            semester: '2025-2',
             color: '#FEF3C7' // Amber-100
         },
         {
@@ -117,7 +113,6 @@ const generateDummyTimetables = (): TimetableItem[] => {
             day: 'Mon',
             startTime: '14:00',
             endTime: '15:30',
-            semester: '2025-2',
             color: '#FEE2E2' // Red-100
         }
     ]
@@ -166,7 +161,7 @@ export const getTimetableData = (): Timetable[] => {
 }
 
 // Timetable Management
-export const getTimetables = (semester: string): TimetableItem[] => {
+export const getTimetables = (): TimetableItem[] => {
     const json = localStorage.getItem(TIMETABLES_KEY)
     let items: TimetableItem[] = []
 
@@ -177,7 +172,7 @@ export const getTimetables = (semester: string): TimetableItem[] => {
         items = JSON.parse(json)
     }
 
-    return items.filter(item => item.semester === semester)
+    return items
 }
 
 const saveAllTimetables = (items: TimetableItem[]): void => {

@@ -13,7 +13,6 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
     const [day, setDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'>('Mon')
     const [startTime, setStartTime] = useState('09:00')
     const [endTime, setEndTime] = useState('10:30')
-    const [semester, setSemester] = useState('2025-2')
     const [color, setColor] = useState('#DBEAFE')
     const [alias, setAlias] = useState('')
 
@@ -29,7 +28,6 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
             day,
             startTime,
             endTime,
-            semester,
             color,
             alias
         })
@@ -102,17 +100,6 @@ export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTim
                                 <option value="Wed">수요일</option>
                                 <option value="Thu">목요일</option>
                                 <option value="Fri">금요일</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">학기</label>
-                            <select
-                                value={semester}
-                                onChange={(e) => setSemester(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                            >
-                                <option value="2025-1">2025-1</option>
-                                <option value="2025-2">2025-2</option>
                             </select>
                         </div>
                     </div>

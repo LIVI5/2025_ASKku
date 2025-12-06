@@ -51,12 +51,7 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                         <p className="text-gray-800">{typeToKorean[schedule.type]}</p>
                     </div>
 
-                    {schedule.type === 'subject' && schedule.semester && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-500">학기</label>
-                            <p className="text-gray-800">{schedule.semester}</p>
-                        </div>
-                    )}
+
                     {schedule.type === 'subject' && schedule.subject && (
                         <div>
                             <label className="block text-sm font-medium text-gray-500">과목</label>
