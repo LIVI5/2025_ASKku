@@ -73,7 +73,6 @@ export interface Schedule {
     type: 'personal' | 'academic' | 'subject' | 'event' | 'other'
     description?: string
     color?: string
-    semester?: string
     subject?: string
 }
 
@@ -97,7 +96,6 @@ export interface Subject {
 }
 
 export interface Timetable {
-    semester: string
     subjects: Subject[]
 }
 
@@ -108,7 +106,6 @@ export interface TimetableItem {
     day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
     startTime: string // HH:mm
     endTime: string // HH:mm
-    semester: string // e.g., "2025-1"
     color?: string
     alias?: string
 }

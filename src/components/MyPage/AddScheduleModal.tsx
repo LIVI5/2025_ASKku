@@ -16,26 +16,27 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
     const [color, setColor] = useState('#3B82F6')
 
     const [timetables, setTimetables] = useState<Timetable[]>([])
-    const [selectedSemester, setSelectedSemester] = useState('')
     const [subjects, setSubjects] = useState<Subject[]>([])
     const [selectedSubject, setSelectedSubject] = useState('')
 
     useEffect(() => {
         if (isOpen) {
-            const sortedTimetables = getTimetableData().sort((a, b) => b.semester.localeCompare(a.semester));
-            setTimetables(sortedTimetables);
+            const allTimetables = getTimetableData();
+            setTimetables(allTimetables);
+            // If there's at least one timetable, select the subjects from the first one
+            if (allTimetables.length > 0) {
+                setSubjects(allTimetables[0].subjects);
+            }
         }
     }, [isOpen])
 
     useEffect(() => {
-        if (selectedSemester) {
-            const timetable = timetables.find((t) => t.semester === selectedSemester)
-            setSubjects(timetable ? timetable.subjects : [])
-        } else {
-            setSubjects([])
+        // If there are timetables, but no subject selected yet,
+        // and if subjects are not already loaded (e.g. on first open)
+        if (timetables.length > 0 && subjects.length === 0) {
+            setSubjects(timetables[0].subjects);
         }
-        setSelectedSubject('') // Reset subject when semester changes
-    }, [selectedSemester, timetables])
+    }, [timetables, subjects.length]);
 
     if (!isOpen) return null
 
@@ -45,7 +46,6 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         setDescription('')
         setType('personal')
         setColor('#3B82F6')
-        setSelectedSemester('')
         setSelectedSubject('')
         setSubjects([])
     }
@@ -63,7 +63,6 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         }
 
         if (type === 'subject') {
-            scheduleData.semester = selectedSemester
             scheduleData.subject = selectedSubject
         }
 
@@ -143,40 +142,21 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                     </div>
 
                     {type === 'subject' && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">학기</label>
-                                <select
-                                    value={selectedSemester}
-                                    onChange={(e) => setSelectedSemester(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                                >
-                                    <option value="">학기 선택 안함</option>
-                                    {timetables.map((t) => (
-                                        <option key={t.semester} value={t.semester}>
-                                            {t.semester}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            {selectedSemester && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">과목</label>
-                                    <select
-                                        value={selectedSubject}
-                                        onChange={(e) => setSelectedSubject(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                                    >
-                                        <option value="">과목 없음</option>
-                                        {subjects.map((s) => (
-                                            <option key={s.id} value={s.name}>
-                                                {s.name} ({s.professor})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                        </>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">과목</label>
+                            <select
+                                value={selectedSubject}
+                                onChange={(e) => setSelectedSubject(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                            >
+                                <option value="">과목 없음</option>
+                                {subjects.map((s) => (
+                                    <option key={s.id} value={s.name}>
+                                        {s.name} ({s.professor})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     )}
 
                     <div>

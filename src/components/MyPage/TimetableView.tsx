@@ -16,16 +16,15 @@ const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 const weekDayLabels = ['월', '화', '수', '목', '금']
 
 export default function TimetableView({ onAddClick }: TimetableViewProps) {
-    const currentSemester = '2025-2' // This could be dynamic
     const [timetable, setTimetable] = useState<TimetableItem[]>([])
 
     useEffect(() => {
-        setTimetable(getTimetables(currentSemester))
+        setTimetable(getTimetables())
     }, [])
 
     const handleDelete = (id: string) => {
         deleteTimetableItem(id)
-        setTimetable(getTimetables(currentSemester)) // Refresh the list
+        setTimetable(getTimetables()) // Refresh the list
     }
 
     const getClassForTimeSlot = (day: string, time: string): TimetableItem | undefined => {

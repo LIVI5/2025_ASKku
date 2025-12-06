@@ -2,7 +2,6 @@ import { Notice, Timetable } from '../types'
 
 export const dummyTimetables: Timetable[] = [
     {
-        semester: '2024년 2학기',
         subjects: [
             { id: 'SWE2001', name: '소프트웨어공학', professor: '김교수' },
             { id: 'CSE3001', name: '자료구조', professor: '이교수' },
@@ -10,7 +9,6 @@ export const dummyTimetables: Timetable[] = [
         ]
     },
     {
-        semester: '2025년 1학기',
         subjects: [
             { id: 'SWE3002', name: '객체지향프로그래밍', professor: '최교수' },
             { id: 'CSE4002', name: '운영체제', professor: '정교수' },
