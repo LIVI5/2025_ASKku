@@ -62,12 +62,32 @@ export interface ChatSession {
 export interface Schedule {
     id: string
     title: string
-    date: string // YYYY-MM-DD
-    type: 'personal' | 'academic' | 'subject'
+    date: string // YYYY-MM-DD (legacy single-day)
+    startDate?: string // YYYY-MM-DD
+    endDate?: string // YYYY-MM-DD
+    startTime?: string // HH:mm
+    endTime?: string // HH:mm
+    allDay?: boolean
+    location?: string
+    sourceId?: string // extracted schedule id from chat
+    type: 'personal' | 'academic' | 'subject' | 'event' | 'other'
     description?: string
     color?: string
     semester?: string
     subject?: string
+}
+
+export interface ExtractedSchedule {
+    id: string
+    title: string
+    startDate: string
+    endDate: string
+    startTime?: string
+    endTime?: string
+    allDay?: boolean
+    description?: string
+    type?: string
+    location?: string
 }
 
 export interface Subject {
