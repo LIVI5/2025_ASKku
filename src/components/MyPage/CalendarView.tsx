@@ -10,10 +10,16 @@ interface CalendarViewProps {
 export default function CalendarView({ onAddClick, onScheduleClick }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [schedules, setSchedules] = useState<Schedule[]>([])
+    const [selectedType, setSelectedType] = useState<'all' | 'personal' | 'academic' | 'course'>('all')
 
     useEffect(() => {
-        setSchedules(getSchedules())
-    }, [])
+        const allSchedules = getSchedules()
+        if (selectedType === 'all') {
+            setSchedules(allSchedules)
+        } else {
+            setSchedules(allSchedules.filter(s => s.type === (selectedType === 'course' ? 'subject' : selectedType)))
+        }
+    }, [selectedType])
 
 
     const getDaysInMonth = (year: number, month: number) => {
@@ -35,7 +41,12 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
     const handleDeleteSchedule = (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
         deleteSchedule(id)
-        setSchedules(getSchedules())
+        const allSchedules = getSchedules() // Re-fetch all schedules after deletion
+        if (selectedType === 'all') {
+            setSchedules(allSchedules)
+        } else {
+            setSchedules(allSchedules.filter(s => s.type === selectedType))
+        }
     }
 
     const renderCalendar = () => {
@@ -111,16 +122,34 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
                         </button>
                     </div>
                 </div>
-                <button
-                    onClick={onAddClick}
-                    className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors flex items-center gap-2"
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    일정 추가
-                </button>
+                <div className="flex items-center gap-2">
+                    <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm text-gray-700">
+                        {['all', 'personal', 'academic', 'course'].map(type => (
+                            <button
+                                key={type}
+                                onClick={() => setSelectedType(type === 'course' ? 'course' : (type as any))}
+                                className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 font-medium transition-colors ${selectedType === type
+                                    ? 'bg-white text-askku-primary shadow'
+                                    : 'hover:bg-gray-100 hover:text-gray-900'
+                                }`}
+                            >
+                                {type === 'all' ? '전체' : type === 'personal' ? '개인' : type === 'academic' ? '학사' : '과목'}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={onAddClick}
+                        className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors flex items-center gap-2"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        <span className="relative -top-[1px]">일정 추가</span>
+                    </button>
+                </div>
             </div>
+
+            {/* Weekday Headers */}
 
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
