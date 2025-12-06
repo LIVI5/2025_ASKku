@@ -1,4 +1,5 @@
 import { User } from '../types'
+import bcrypt from 'bcryptjs'
 
 const USERS_KEY = 'askku_users'
 const TOKEN_KEY = 'askku_token'
@@ -34,16 +35,24 @@ export const clearAllData = (): void => {
 
 // Password management (stored separately for security)
 const PASSWORDS_KEY = 'askku_passwords'
+const saltRounds = 10; // For bcrypt hashing
 
 export const savePassword = (userId: string, password: string): void => {
     const passwords = getPasswords()
-    passwords[userId] = password // In production, this should be hashed
+    // Hash the password before saving
+    const hashedPassword = bcrypt.hashSync(password, saltRounds)
+    passwords[userId] = hashedPassword
     localStorage.setItem(PASSWORDS_KEY, JSON.stringify(passwords))
 }
 
 export const verifyPassword = (userId: string, password: string): boolean => {
     const passwords = getPasswords()
-    return passwords[userId] === password
+    const storedHash = passwords[userId]
+    if (!storedHash) {
+        return false // No password stored for this user
+    }
+    // Compare the provided password with the stored hash
+    return bcrypt.compareSync(password, storedHash)
 }
 
 const getPasswords = (): Record<string, string> => {

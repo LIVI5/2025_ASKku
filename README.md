@@ -19,7 +19,7 @@
    ```
 
 3. **Install dependencies**
-   This step downloads all the necessary libraries (React, TypeScript, etc.) listed in `package.json`.
+   This step downloads all the necessary libraries (React, TypeScript, bcryptjs, etc.) listed in `package.json`.
    ```bash
    npm install
    ```
