@@ -18,12 +18,7 @@ def clean_text(text: str) -> str:
 
 
 def get_retriever(score_threshold: float = 0.5):
-    """
-    벡터 검색기 생성 (유사도 점수 필터링)
-    
-    Args:
-        score_threshold: 유사도 점수 임계값 (0.3~0.7 권장)
-    """
+    """벡터 DB에서 리트리버 생성"""
     vectordb = Chroma(
         persist_directory=PERSIST_DIR,
         embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),

@@ -47,6 +47,7 @@ def crawl_notices(
         page_notices = []
         total_items_on_page = 0  # 페이지에 있는 전체 글 개수
         skipped_items = 0  # 스킵된 글 개수
+        found_existing = False
 
         for item in items:
             total_items_on_page += 1
@@ -79,11 +80,18 @@ def crawl_notices(
                 raw_num = post_num_raw or f"{title}_{post_date_raw}"
                 post_num = f"{raw_num}"
 
-            # 중복 체크
+            # ✨ 중복 체크 - 일반 글(고정 공지 제외)에서 발견 시 즉시 중단
             if post_num in existing_post_nums:
-                print(f"  → Skipping (already crawled): {title}")
-                skipped_items += 1
-                continue
+                if post_num_raw != "공지":  # 고정 공지가 아닌 경우에만
+                    print(f"  → Found existing post: {title} ({post_num})")
+                    print(f"  → Stopping crawl (all newer posts already collected)")
+                    found_existing = True
+                    break  # 현재 페이지 루프 중단
+                else:
+                    # 고정 공지는 스킵만 하고 계속
+                    print(f"  → Skipping fixed notice: {title}")
+                    skipped_items += 1
+                    continue
             
             page_notices.append({
                 "post_num": post_num,
@@ -95,6 +103,13 @@ def crawl_notices(
             })
         
         print(f"  Total items on page: {total_items_on_page}, New items: {len(page_notices)}, Skipped: {skipped_items}")
+        
+        # ✨ 기존 글을 만났으면 크롤링 완전 종료
+        if found_existing:
+            driver.quit()
+            print(f"\n=== Crawling stopped (found existing post) ===")
+            print(f"Total new notices crawled: {len(notices)}")
+            return notices
         
         # 페이지에 글이 하나도 없으면 크롤링 종료
         if total_items_on_page == 0:

@@ -51,6 +51,7 @@ def crawl_notices(
         page_notices = []
         total_items_on_page = 0
         skipped_items = 0
+        found_existing = False  # ✨ 기존 글 발견 플래그
 
         for row in rows:
             cells = row.find_all("td")
@@ -74,16 +75,27 @@ def crawl_notices(
                 link = urljoin(BASE_URL, link)
 
             date_text = cells[-2].get_text(strip=True)  # 마지막에서 두 번째 컬럼이 보통 날짜
+            
             # 번호 처리 (상단공지 / 일반글)
-            if no_text == "" or "Image" in no_text:
+            is_fixed_notice = (no_text == "" or "Image" in no_text)
+            
+            if is_fixed_notice:
                 post_num = f"NOTICE_{title}_{date_text}"
             else:
                 post_num = no_text
 
+            # ✨ 중복 체크 - 고정 공지가 아닌 일반 글에서 중복 발견 시 즉시 중단
             if post_num in existing_post_nums:
-                print(f"  → Skipping (already crawled): {title}")
-                skipped_items += 1
-                continue
+                if not is_fixed_notice:  # 일반 글인 경우
+                    print(f"  → Found existing post: {title} ({post_num})")
+                    print(f"  → Stopping crawl (all newer posts already collected)")
+                    found_existing = True
+                    break  # 현재 페이지 루프 중단
+                else:
+                    # 고정 공지는 스킵만
+                    print(f"  → Skipping fixed notice: {title}")
+                    skipped_items += 1
+                    continue
 
             page_notices.append({
                 "post_num": post_num,
@@ -91,9 +103,17 @@ def crawl_notices(
                 "date": date_text,
                 "link": link,
                 "category": category,
+                "is_fixed_notice": is_fixed_notice
             })
 
         print(f"  Total rows: {total_items_on_page}, New: {len(page_notices)}, Skipped: {skipped_items}")
+
+        # ✨ 기존 글을 만났으면 크롤링 완전 종료
+        if found_existing:
+            driver.quit()
+            print("\n=== [서울] Crawling stopped (found existing post) ===")
+            print(f"Total new notices crawled: {len(notices)}")
+            return notices
 
         if total_items_on_page == 0:
             print("No items on this page, stopping.")
@@ -110,6 +130,7 @@ def crawl_notices(
                 "link": notice_info["link"],
                 "category": notice_info["category"],
                 "body": body,
+                "is_fixed_notice": notice_info["is_fixed_notice"],
                 "source": "DORM_SEOUL"
             })
             existing_post_nums.add(notice_info["post_num"])
@@ -138,7 +159,7 @@ def crawl_notice_body(driver, link, delay=1):
     if body_tag:
         body = body_tag.get_text(separator="\n", strip=True)
     else:
-        # 실패하면 페이지 전체 텍스트에서 불필요한 공백만 정리해서 사용 (조금 지저분해도 일단 동작용)
+        # 실패하면 페이지 전체 텍스트에서 불필요한 공백만 정리해서 사용
         full_text = soup.get_text(separator="\n", strip=True)
         lines = [line for line in full_text.splitlines() if line.strip()]
         body = "\n".join(lines)

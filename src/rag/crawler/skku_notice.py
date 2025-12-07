@@ -38,12 +38,12 @@ def crawl_notices(
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # 🔥 셀렉터 완전 완화: articleNo= 만 포함된 링크 모두
+        # articleNo= 만 포함된 링크 모두
         anchors = soup.select("a[href*='articleNo=']")
 
         print(f"  Found {len(anchors)} <a> with articleNo=")
         if not anchors:
-            # 디버깅용: a 태그 몇 개 출력해보기
+            # 디버깅용: a 태그 출력
             all_as = soup.select("a")
             print(f"  Total <a> tags on page: {len(all_as)}")
             for a in all_as[:30]:
@@ -55,6 +55,8 @@ def crawl_notices(
             break
 
         page_notices = []
+        found_existing = False  # ✨ 기존 글 발견 플래그
+        skipped_items = 0
 
         for a in anchors:
             href = a.get("href", "").strip()
@@ -71,9 +73,12 @@ def crawl_notices(
 
             post_id = article_no or link
 
+            # ✨ 중복 체크 - 발견 시 즉시 중단
             if post_id in existing_post_nums:
-                print(f"  → Skipping (already crawled): {title}")
-                continue
+                print(f"  → Found existing post: {title} ({post_id})")
+                print(f"  → Stopping crawl (all newer posts already collected)")
+                found_existing = True
+                break  # 현재 페이지 루프 중단
 
             page_notices.append(
                 {
@@ -82,9 +87,15 @@ def crawl_notices(
                     "link": link,
                 }
             )
-            existing_post_nums.add(post_id)
 
-        print(f"  New items on page: {len(page_notices)}")
+        print(f"  New items on page: {len(page_notices)}, Skipped: {skipped_items}")
+
+        # ✨ 기존 글을 만났으면 크롤링 완전 종료
+        if found_existing:
+            driver.quit()
+            print("\n=== Crawling stopped (found existing post) ===")
+            print(f"Total new notices crawled: {len(notices)}")
+            return notices
 
         # 상세 페이지 크롤링
         for idx, notice_info in enumerate(page_notices, 1):
@@ -103,6 +114,7 @@ def crawl_notices(
                     "department": meta.get("department"),
                 }
             )
+            existing_post_nums.add(notice_info["post_id"])
             print(f"    ✓ Completed ({notice_info['post_id']})")
 
     driver.quit()
@@ -132,7 +144,7 @@ def crawl_notice_body(driver, link: str, delay: int = 1):
         else:
             body = full_text
 
-    # 메타데이터 대충 파싱
+    # 메타데이터 파싱
     text = soup.get_text("\n", strip=True)
     category = None
     date = None
