@@ -33,7 +33,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### 3. 패키지 설치
 
 ```bash
-npm start
+npm install
 ```
 
 ### 4. 서버 실행

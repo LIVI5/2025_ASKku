@@ -1,37 +1,43 @@
-// app.js ¶Ç´Â server.js
-
 const express = require("express");
 const app = express();
+const cors = require("cors");
 
-// ¹Ìµé¿þ¾î ¼³Á¤
+const timetableRoutes = require("./routes/timetable.route");
+const bookmarkRoutes = require("./routes/bookmark.route");
+const ragRoutes = require("./routes/rag.route");
+const userRoutes = require("./routes/user.route");
+const noticeRoutes = require("./routes/notice.route");
+const scheduleRoutes = require("./routes/schedule.route");
+
+// ===== CORS MUST COME FIRST =====
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
+
+// ===== BODY PARSER =====
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ========== ¶ó¿ìÅÍ import ==========
-const timetableRoutes = require("./routes/timetable.routes");
-const bookmarkRoutes = require("./routes/bookmark.routes");
-const ragRoutes = require("./routes/rag.routes");
-const userRoutes = require("./routes/user.routes");
-const noticeRoutes = require("./routes/notice.routes");
-
-// ========== ¶ó¿ìÅÍ µî·Ï ==========
+// ===== ROUTES =====
 app.use("/api/timetables", timetableRoutes);
 app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/rag", ragRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notices", noticeRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
-// ========== ¿¡·¯ ÇÚµé¸µ ==========
+// ===== ERROR HANDLER =====
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
-    message: "¼­¹ö ¿À·ù°¡ ¹ß»ýÇß½À´Ï´Ù.",
+    message: "ì„œë²„ ë‚´ë¶€ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.",
   });
 });
 
-// ========== ¼­¹ö ½ÇÇà ==========
-const PORT = process.env.PORT || 3000;
+// ===== SERVER START =====
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

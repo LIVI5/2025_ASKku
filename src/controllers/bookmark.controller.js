@@ -1,4 +1,7 @@
 const { Bookmark } = require("../models");
+const axios = require("axios");
+
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
 
 // ==================== 북마크 생성 ====================
 const createBookmark = async (req, res) => {
@@ -6,7 +9,6 @@ const createBookmark = async (req, res) => {
     const userID = req.user.userID;
     const { question, answer, sources } = req.body;
 
-    // 필수 필드 검증
     if (!question || !answer) {
       return res.status(400).json({
         success: false,
@@ -19,22 +21,37 @@ const createBookmark = async (req, res) => {
       question,
       answer,
       sources: sources || null,
+      summary: null
     });
+
+    // 요약 생성 요청 → FASTAPI
+    const response = await axios.post(`${FASTAPI_URL}/bookmark/summary`, {
+      question,
+      answer
+    });
+
+    const structuredSummary = response.data?.summary || null;
+
+    bookmark.summary = structuredSummary;
+    await bookmark.save();
 
     return res.status(201).json({
       success: true,
-      message: "북마크가 저장되었습니다.",
+      message: "북마크가 저장되었고 요약이 생성되었습니다.",
       bookmark,
+      summary: structuredSummary
     });
 
   } catch (err) {
-    console.error("Bookmark Creation Error:", err);
+    console.error("Bookmark Summary Error:", err);
     return res.status(500).json({
       success: false,
-      message: "북마크 저장 실패",
+      message: "북마크 저장 또는 요약 중 오류 발생",
+      error: err.message
     });
   }
 };
+
 
 
 // ==================== 내 북마크 목록 조회 ====================

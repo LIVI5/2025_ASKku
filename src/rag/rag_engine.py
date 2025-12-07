@@ -23,13 +23,15 @@ def get_retriever(score_threshold: float = 0.5):
         persist_directory=PERSIST_DIR,
         embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),
     )
+    return vectordb.as_retriever(search_kwargs={"k": 5})
+    """
     return vectordb.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={
             "score_threshold": score_threshold,
             "k": 5
         }
-    )
+    )"""
 
 
 def format_timetable(timetable: List[Dict]) -> str:
@@ -315,3 +317,114 @@ def translate_response(
             "translated_text": None,
             "error": f"번역 중 오류가 발생했습니다: {str(e)}"
         }
+        
+def summarize_bookmark(question, answer):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+
+    prompt = f"""
+다음 내용을 아래 마크다운 형식에 따라 요약해줘.
+
+## 내용
+- 핵심 항목 3~7개
+- 문장형 금지 (예: ~하다, ~할 수 있다, 좋다 등)
+- 불필요한 말 축약, 핵심 표현만
+- 중복 의미 금지
+- 설명 문장 생성 금지
+- 한 줄당 하나의 항목
+- 일정이 있다면 일정도 반드시 포함
+---
+
+### 출력 형식(이 형식을 그대로 사용할 것):
+
+**내용:**
+- 항목1
+- 항목1 일정
+
+**내용:**
+- 항목2
+- 항목2 일정
+
+---
+
+### 요약 대상
+
+**질문:**  
+{question}
+**답변:**  
+{answer}
+"""
+
+    return llm.invoke(prompt).content.strip()
+
+
+def extract_schedule_from_dialog(question: str, answer: str):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+
+    prompt = f"""
+아래 대화를 분석하여 '일정' 데이터를 추출해줘.
+
+매우 중요한 규칙 (시간 포함):
+
+1. 날짜 + 시간 범위가 있는 경우:
+   예: "2025년 12월 6일 09:00~18:00"
+   - startDate = 2025-12-06
+   - endDate = 2025-12-06
+   - startTime = 09:00
+   - endTime = 18:00
+
+2. 날짜는 있고 시간이 없는 경우:
+   - startTime = null
+   - endTime = null
+   - isAllDay = true
+
+3. 기간만 있는 경우:
+   예: 2025.12.22 ~ 2026.01.31
+   - startTime = null
+   - endTime = null
+
+4. 시간 표현은 반드시 "HH:MM" 24시간 형식
+
+5. 날짜가 없으면 반드시 "null" 출력
+   (JSON 외 출력 금지)
+
+
+최종 출력 형식 (JSON ONLY)
+
+단일 일정이면:
+{{
+  "title": "...",
+  "startDate": "YYYY-MM-DD",
+  "endDate": "YYYY-MM-DD",
+  "startTime": "HH:MM" 또는 null,
+  "endTime": "HH:MM" 또는 null,
+  "isAllDay": true 또는 false,
+  "type": "exam | schedule | personal | class | 기타",
+  "location": "장소 또는 null"
+}}
+
+여러 일정이면 JSON 배열:
+[
+  {{
+    "title": "...",
+    "startDate": "...",
+    "endDate": "...",
+    "startTime": "...",
+    "endTime": "...",
+    "isAllDay": ...,
+    "type": "...",
+    "location": ...
+  }},
+  ...
+]
+
+대화 내용:
+
+질문: {question}
+답변: {answer}
+"""
+
+    return llm.invoke(prompt).content.strip()
+
+
+
+
