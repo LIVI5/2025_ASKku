@@ -62,23 +62,6 @@ source venv/bin/activate # macOS/Linux
 pip install -r ../../requirements.txt
 ```
 
-**폴더 구조:**
-```
-src/rag/
-├── ingest.py              # 데이터 수집 및 임베딩
-├── chatbot.py             # 챗봇 실행
-├── static_data.py         # 정적 데이터 (학사일정, 건물정보 등)
-├── crawler/               # 크롤러 모듈
-│   ├── __init__.py
-│   └── cse_notice.py      # 소프트웨어학과 공지 크롤러
-├── pdf_doc/               # PDF 문서 관리
-│   ├── new/               # 새로운 PDF (임베딩 대상)
-│   └── processed/         # 처리 완료 PDF (자동 이동)
-├── chroma_db/             # 벡터 DB (자동 생성)
-├── crawled_data.json      # 크롤링 기록 (자동 생성)
-└── latest_notices.json    # 최신 공지 3개 (자동 생성)
-```
-
 ### 2. 데이터 수집 및 임베딩 (ingest.py)
 
 #### 기본 실행 (크롤링 + 정적데이터)
@@ -144,13 +127,7 @@ mkdir -p pdf_doc/processed
    python ingest.py --no-crawl
    ```
 
-### 3. 챗봇 실행 (chatbot.py)
-
-```bash
-python chatbot.py
-```
-
-### 4. 정기 업데이트
+### 3. 정기 업데이트
 
 ```bash
 # 매일 또는 매주 실행하여 새 공지사항 수집
@@ -189,37 +166,6 @@ rm -rf venv/
 python -m venv venv
 venv\Scripts\activate
 pip install -r ../../requirements.txt
-```
-
----
-
-## 성능 최적화 팁
-
-### 1. 청크 크기 조정 (`ingest.py`)
-
-```python
-# 공지사항이 짧은 경우
-chunk_size=400,    # 기본: 800
-chunk_overlap=100  # 기본: 200
-```
-
-### 2. 검색 개수 조정 (`chatbot.py`)
-
-```python
-# 검색 결과 개수 조절
-retriever = vectordb.as_retriever(search_kwargs={"k": 3})  # 기본: 5
-```
-
-### 3. 메타데이터 필터링 (`chatbot.py`)
-
-```python
-# 특정 게시판만 검색
-retriever = vectordb.as_retriever(
-    search_kwargs={
-        "k": 5,
-        "filter": {"board_name": "소프트웨어학과"}
-    }
-)
 ```
 
 ---
@@ -264,8 +210,6 @@ notice_crawlers = [
 ```bash
 python ingest.py
 ```
-
-완료! 새 게시판의 공지도 자동으로 수집되고 `latest_notices.json`에 포함됩니다.
 
 ---
 
