@@ -11,11 +11,12 @@ import {
     clearSession,
     createNewSession,
     extractSchedulesFromConversation,
-    generateAIResponse,
+    generateAIResponseStream,
     getBookmarks,
     getCurrentSession,
     removeBookmark,
-    toggleMessageBookmark
+    toggleMessageBookmark,
+    updateMessage
 } from '../../services/chatService'
 
 import { addSchedule } from '../../services/myPageService'
@@ -52,7 +53,6 @@ export default function ChatPage() {
         if (initialMessage) {
             initialMessageSentRef.current = true
 
-            // 기존 세션이 있다면 초기화
             if (session.messages.length > 0) {
                 clearSession()
                 session = createNewSession()
@@ -78,49 +78,107 @@ export default function ChatPage() {
     }, [messages])
 
     // ---------------------------
-    // 메시지 전송
+    // 메시지 전송 (스트리밍)
     // ---------------------------
     const handleSendMessage = async (content: string) => {
+        // 1. 사용자 메시지 추가
         const userMessage = addMessage(content, 'user', 'text')
         setMessages(prev => [...prev, userMessage])
+
+        // 2. 빈 AI 메시지 생성
+        const aiMessage = addMessage('', 'assistant', 'markdown')
+        setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
 
+        let accumulatedText = ''
+
         try {
-            const aiResponse = await generateAIResponse(content)
-
-            const aiMessage = addMessage(
-                aiResponse.text,
-                'assistant',
-                aiResponse.format
+            await generateAIResponseStream(
+                content,
+                // onChunk: 실시간으로 텍스트 누적
+                (chunk) => {
+                    accumulatedText += chunk
+                    updateMessage(aiMessage.id, accumulatedText)
+                    
+                    // UI 업데이트
+                    setMessages(prev => 
+                        prev.map(m => 
+                            m.id === aiMessage.id 
+                                ? { ...m, content: accumulatedText }
+                                : m
+                        )
+                    )
+                },
+                // onSources: 출처 정보 (필요시 활용)
+                (sources) => {
+                    console.log('Sources:', sources)
+                },
+                // onComplete: 완료 시
+                () => {
+                    console.log('Streaming completed')
+                    setIsLoading(false)
+                },
+                // onError: 에러 시
+                (error) => {
+                    console.error('Stream error:', error)
+                    updateMessage(aiMessage.id, '❌ 답변 생성 중 오류가 발생했습니다.')
+                    setMessages(prev => 
+                        prev.map(m => 
+                            m.id === aiMessage.id 
+                                ? { ...m, content: '❌ 답변 생성 중 오류가 발생했습니다.' }
+                                : m
+                        )
+                    )
+                    setIsLoading(false)
+                }
             )
-
-            setMessages(prev => [...prev, aiMessage])
         } catch (error) {
-            console.error('Error generating AI response:', error)
-        } finally {
+            console.error('Error in handleSendMessage:', error)
             setIsLoading(false)
         }
     }
 
     // ---------------------------
-    // 번역 요청
+    // 번역 요청 (스트리밍)
     // ---------------------------
     const handleTranslate = async (content: string) => {
+        const request = `Translate the following text to English:\n\n${content}`
+        
+        const userMessage = addMessage(request, 'user', 'text')
+        setMessages(prev => [...prev, userMessage])
+
+        const aiMessage = addMessage('', 'assistant', 'markdown')
+        setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
+
+        let accumulatedText = ''
+
         try {
-            const request = `Translate the following text to English:\n\n${content}`
-            const aiResponse = await generateAIResponse(request)
-
-            const aiMessage = addMessage(
-                aiResponse.text,
-                'assistant',
-                aiResponse.format
+            await generateAIResponseStream(
+                request,
+                (chunk) => {
+                    accumulatedText += chunk
+                    updateMessage(aiMessage.id, accumulatedText)
+                    
+                    setMessages(prev => 
+                        prev.map(m => 
+                            m.id === aiMessage.id 
+                                ? { ...m, content: accumulatedText }
+                                : m
+                        )
+                    )
+                },
+                undefined,
+                () => {
+                    setIsLoading(false)
+                },
+                (error) => {
+                    console.error('Translation error:', error)
+                    setIsLoading(false)
+                }
             )
-
-            setMessages(prev => [...prev, aiMessage])
         } catch (error) {
-            console.error('Error generating AI translation response:', error)
-        } finally {
+            console.error('Error generating translation:', error)
             setIsLoading(false)
         }
     }
@@ -239,9 +297,7 @@ export default function ChatPage() {
 
     return (
         <div className="flex h-screen">
-            {/* ------------------------------
-                메인 채팅 영역
-            ------------------------------ */}
+            {/* 메인 채팅 영역 */}
             <div className="flex-1 flex flex-col bg-gray-50">
 
                 {/* Header */}
@@ -312,9 +368,7 @@ export default function ChatPage() {
                 <ChatInput onSend={handleSendMessage} disabled={isLoading} />
             </div>
 
-            {/* ------------------------------
-                북마크 사이드바
-            ------------------------------ */}
+            {/* 북마크 사이드바 */}
             <BookmarkSidebar
                 bookmarks={bookmarks}
                 onRemove={handleRemoveBookmark}

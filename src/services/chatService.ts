@@ -1,6 +1,6 @@
-import api from '../api/axiosInstance'
 import DOMPurify from "dompurify"
 import { ChatMessage, ChatSession, Bookmark, ExtractedSchedule } from '../types'
+import api from '../api/axiosInstance'
 
 const CHAT_SESSION_KEY = 'askku_chat_session'
 const BOOKMARKS_KEY = 'askku_bookmarks'
@@ -60,6 +60,18 @@ export const addMessage = (
     return message
 }
 
+// 메시지 업데이트 (스트리밍용)
+export const updateMessage = (messageId: string, content: string): void => {
+    const session = getCurrentSession()
+    if (!session) return
+
+    const message = session.messages.find(m => m.id === messageId)
+    if (message) {
+        message.content = content
+        saveSession(session)
+    }
+}
+
 // ------------------------------
 // CLEAN MARKDOWN
 // ------------------------------
@@ -72,12 +84,16 @@ const cleanMarkdown = (text: string): string => {
 };
 
 // ------------------------------
-// AI RESPONSE (BACKEND)
+// AI RESPONSE (STREAMING)
 // ------------------------------
 
-export const generateAIResponse = async (
-    userMessage: string
-): Promise<{ text: string; format: 'markdown' | 'sources' | 'text' }> => {
+export const generateAIResponseStream = async (
+    userMessage: string,
+    onChunk: (chunk: string) => void,
+    onSources?: (sources: any[]) => void,
+    onComplete?: () => void,
+    onError?: (error: string) => void
+): Promise<void> => {
 
     try {
         let session = getCurrentSession()
@@ -88,45 +104,116 @@ export const generateAIResponse = async (
             content: m.content
         }))
 
-        const res = await api.post('/api/rag/ask', {
-            message: userMessage,
-            history: recentHistory,
-            isFirstQuestion: session.messages.length === 0
+        // RAG API는 8001 포트
+        const baseURL = 'http://localhost:8001'
+        const url = `${baseURL}/chat`
+        
+        console.log('[DEBUG] Fetching:', url)
+        console.log('[DEBUG] Payload:', { message: userMessage, history: recentHistory })
+        
+        // Fetch API로 스트리밍 요청
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: userMessage,
+                history: recentHistory,
+                user_info: {
+                    name: '사용자',
+                    department: '미제공',
+                    grade: '미제공'
+                },
+                timetable: []
+            })
         })
 
-        const data = res.data
+        if (!response.ok) {
+            const errorText = await response.text()
+            console.error('[DEBUG] Response not OK:', response.status, errorText)
+            throw new Error(`HTTP ${response.status}: ${errorText}`)
+        }
 
-        if (data.type === 'answer') {
-            return {
-                text: cleanMarkdown(data.reply),
-                format: "markdown"
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+
+        if (!reader) {
+            throw new Error('No reader available')
+        }
+
+        let buffer = ''
+
+        while (true) {
+            const { done, value } = await reader.read()
+            
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            
+            // SSE 형식 파싱: "data: {...}\n\n"
+            const lines = buffer.split('\n\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+                if (!line.trim() || !line.startsWith('data: ')) continue
+
+                try {
+                    const jsonStr = line.replace('data: ', '').trim()
+                    const event = JSON.parse(jsonStr)
+
+                    if (event.type === 'sources') {
+                        if (onSources) onSources(event.sources)
+                    } 
+                    else if (event.type === 'content') {
+                        onChunk(event.content)
+                    }
+                    else if (event.type === 'done') {
+                        if (onComplete) onComplete()
+                    }
+                    else if (event.type === 'error') {
+                        throw new Error(event.message)
+                    }
+                } catch (e) {
+                    console.error('Parse error:', e, line)
+                }
             }
         }
-
-        if (data.type === 'info_request') {
-            return {
-                text: cleanMarkdown(`### 🔍 추가 정보가 필요해요!\n${data.suggestion}`),
-                format: "markdown"
-            }
-        }
-
-        if (data.sources) {
-            const md = data.sources.map((s: any, i: number) =>
-                `**${i + 1}.** [${s.title}](${s.url})`).join("\n")
-
-            return { text: cleanMarkdown(md), format: "sources" }
-        }
-
-        return { text: "알 수 없는 응답입니다.", format: "text" }
 
     } catch (e) {
-        return {
-            text: cleanMarkdown("❌ AI 서버 오류. 잠시 후 다시 시도해주세요."),
-            format: "markdown"
+        console.error('[DEBUG] AI Response Stream Error:', e)
+        if (onError) {
+            onError('답변 생성 중 오류가 발생했습니다.')
         }
     }
 }
 
+// 기존 non-streaming 버전 (호환성 유지)
+export const generateAIResponse = async (
+    userMessage: string
+): Promise<{ text: string; format: 'markdown' | 'sources' | 'text' }> => {
+
+    return new Promise((resolve, reject) => {
+        let fullText = ''
+
+        generateAIResponseStream(
+            userMessage,
+            (chunk) => {
+                fullText += chunk
+            },
+            undefined,
+            () => {
+                resolve({
+                    text: cleanMarkdown(fullText),
+                    format: 'markdown'
+                })
+            },
+            (error) => {
+                reject(new Error(error))
+            }
+        )
+    })
+}
 
 // ------------------------------
 // BOOKMARKS (LOCAL)
@@ -146,7 +233,6 @@ export const addBookmark = async (
         const res = await api.post('/api/bookmarks', {
             question,
             answer,
-            // sources는 현재 없음
         })
 
         if (!res.data.success) return null
@@ -159,7 +245,6 @@ export const addBookmark = async (
             timestamp: new Date().toISOString()
         }
 
-        // 기존 localStorage 유지(원하면 제거 가능)
         const bookmarks = getBookmarks()
         bookmarks.unshift(newBookmark)
         localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
@@ -205,7 +290,6 @@ export const toggleMessageBookmark = (messageId: string): void => {
     }
 }
 
-
 // ------------------------------
 // SCHEDULE EXTRACTION
 // ------------------------------
@@ -226,7 +310,6 @@ export const extractSchedulesFromConversation = async (
         return []
     }
 }
-
 
 export const clearAllBookmarks = (): void => {
     const session = getCurrentSession()
