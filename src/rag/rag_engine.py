@@ -125,77 +125,77 @@ def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
     return system_prompt
 
 
-def check_needs_additional_info(
-    question: str,
-    user_info: Dict,
-    llm: ChatOpenAI
-) -> Dict:
-    """
-    질문 분석 후 추가 정보 필요 여부 판단
+# def check_needs_additional_info(
+#     question: str,
+#     user_info: Dict,
+#     llm: ChatOpenAI
+# ) -> Dict:
+#     """
+#     질문 분석 후 추가 정보 필요 여부 판단
     
-    Returns:
-        {
-            "needs_more_info": bool,
-            "reason": str,
-            "suggestion": str
-        }
-    """
+#     Returns:
+#         {
+#             "needs_more_info": bool,
+#             "reason": str,
+#             "suggestion": str
+#         }
+#     """
     
-    # 사용자가 이미 제공한 정보
-    existing_info = f"""
-- 학과: {user_info.get('department', '미제공')}
-- 학년: {user_info.get('grade', '미제공')}
-- 추가정보: {user_info.get('additional_info', '없음')}
-"""
+#     # 사용자가 이미 제공한 정보
+#     existing_info = f"""
+# - 학과: {user_info.get('department', '미제공')}
+# - 학년: {user_info.get('grade', '미제공')}
+# - 추가정보: {user_info.get('additional_info', '없음')}
+# """
     
-    analysis_prompt = f"""
-질문: "{question}"
+#     analysis_prompt = f"""
+# 질문: "{question}"
 
-현재 사용자 정보:
-{existing_info}
+# 현재 사용자 정보:
+# {existing_info}
 
-이 질문에 답변하기 위해 추가로 필요한 정보가 있는지 판단해줘.
+# 이 질문에 답변하기 위해 추가로 필요한 정보가 있는지 판단해줘.
 
-응답 형식 (JSON만 출력, 다른 텍스트 없이):
-{{
-  "needs_more_info": true 또는 false,
-  "reason": "추가 정보가 필요한 이유 (한국어로 친절하게)",
-  "suggestion": "어떤 정보를 어떻게 입력하라고 안내할지 (구체적으로)"
-}}
+# 응답 형식 (JSON만 출력, 다른 텍스트 없이):
+# {{
+#   "needs_more_info": true 또는 false,
+#   "reason": "추가 정보가 필요한 이유 (한국어로 친절하게)",
+#   "suggestion": "어떤 정보를 어떻게 입력하라고 안내할지 (구체적으로)"
+# }}
 
-판단 기준:
-- "장학금", "지원 자격" 관련 → 학점, 소득분위 필요
-- "교환학생" 관련 → 학점, 어학성적 필요
-- 일반적인 일정, 공지 조회 → 추가 정보 불필요
+# 판단 기준:
+# - "장학금", "지원 자격" 관련 → 학점, 소득분위 필요
+# - "교환학생" 관련 → 학점, 어학성적 필요
+# - 일반적인 일정, 공지 조회 → 추가 정보 불필요
 
-예시:
-질문: "장학금 알려줘"
-→ {{"needs_more_info": true, "reason": "장학금 지원 자격을 정확히 확인하려면 추가 정보가 필요합니다", "suggestion": "학점(평점)과 소득분위를 알려주세요. 예: 평점 3.5, 소득 5분위"}}
+# 예시:
+# 질문: "장학금 알려줘"
+# → {{"needs_more_info": true, "reason": "장학금 지원 자격을 정확히 확인하려면 추가 정보가 필요합니다", "suggestion": "학점(평점)과 소득분위를 알려주세요. 예: 평점 3.5, 소득 5분위"}}
 
-질문: "중간고사 일정은?"
-→ {{"needs_more_info": false, "reason": "", "suggestion": ""}}
-"""
+# 질문: "중간고사 일정은?"
+# → {{"needs_more_info": false, "reason": "", "suggestion": ""}}
+# """
     
-    try:
-        response = llm.invoke([HumanMessage(content=analysis_prompt)])
-        # JSON 파싱
-        content = response.content.strip()
-        # ```json ``` 제거
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+#     try:
+#         response = llm.invoke([HumanMessage(content=analysis_prompt)])
+#         # JSON 파싱
+#         content = response.content.strip()
+#         # ```json ``` 제거
+#         if content.startswith("```"):
+#             content = content.split("```")[1]
+#             if content.startswith("json"):
+#                 content = content[4:]
         
-        analysis = json.loads(content.strip())
-        return analysis
-    except Exception as e:
-        print(f"Info check error: {e}")
-        # 파싱 실패 시 추가 정보 요청 안 함
-        return {
-            "needs_more_info": False,
-            "reason": "",
-            "suggestion": ""
-        }
+#         analysis = json.loads(content.strip())
+#         return analysis
+#     except Exception as e:
+#         print(f"Info check error: {e}")
+#         # 파싱 실패 시 추가 정보 요청 안 함
+#         return {
+#             "needs_more_info": False,
+#             "reason": "",
+#             "suggestion": ""
+#         }
 
 
 def generate_rag_response(
@@ -205,42 +205,24 @@ def generate_rag_response(
     timetable: List[Dict],
     is_first_question: bool = False
 ) -> Dict:
-    """
-    RAG 기반 답변 생성
-    
-    Args:
-        question: 사용자 질문
-        history: 이전 대화 기록 [{"role": "user", "content": "..."}, ...]
-        user_info: 사용자 정보 {"name": ..., "department": ..., ...}
-        timetable: 시간표 정보
-        is_first_question: 세션의 첫 질문 여부
-    
-    Returns:
-        {
-            "type": "answer" | "info_request",
-            "reply": str (답변 내용),
-            "sources": List[Dict] (참고 문서),
-            "info_request": Dict (추가 정보 요청 시)
-        }
-    """
     
     try:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.2, streaming=True)
         
-        # 1. 세션 첫 질문이면 추가 정보 필요 여부 체크
-        if is_first_question:
-            info_check = check_needs_additional_info(question, user_info, llm)
+        # # 1. 세션 첫 질문이면 추가 정보 필요 여부 체크
+        # if is_first_question:
+        #     info_check = check_needs_additional_info(question, user_info, llm)
             
-            if info_check["needs_more_info"]:
-                return {
-                    "type": "info_request",
-                    "reply": None,
-                    "sources": [],
-                    "info_request": {
-                        "reason": info_check["reason"],
-                        "suggestion": info_check["suggestion"]
-                    }
-                }
+        #     if info_check["needs_more_info"]:
+        #         return {
+        #             "type": "info_request",
+        #             "reply": None,
+        #             "sources": [],
+        #             "info_request": {
+        #                 "reason": info_check["reason"],
+        #                 "suggestion": info_check["suggestion"]
+        #             }
+        #         }
         
         # 2. 문서 검색
         retriever = get_retriever(score_threshold=0.5)
@@ -301,19 +283,6 @@ def translate_response(
     text: str,
     target_language: str = "en"
 ) -> Dict:
-    """
-    답변을 다른 언어로 번역
-    
-    Args:
-        text: 원본 텍스트
-        target_language: 목표 언어 ("en" 또는 "ko")
-    
-    Returns:
-        {
-            "translated_text": str,
-            "error": Optional[str]
-        }
-    """
     
     try:
         llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
