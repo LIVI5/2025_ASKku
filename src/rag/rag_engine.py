@@ -1,6 +1,6 @@
 import os
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, AsyncGenerator
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
@@ -24,14 +24,6 @@ def get_retriever(score_threshold: float = 0.5):
         embedding_function=OpenAIEmbeddings(model="text-embedding-3-small"),
     )
     return vectordb.as_retriever(search_kwargs={"k": 5})
-    """
-    return vectordb.as_retriever(
-        search_type="similarity_score_threshold",
-        search_kwargs={
-            "score_threshold": score_threshold,
-            "k": 5
-        }
-    )"""
 
 
 def format_timetable(timetable: List[Dict]) -> str:
@@ -41,7 +33,7 @@ def format_timetable(timetable: List[Dict]) -> str:
     
     formatted = []
     for item in timetable:
-        if item.get('courseName'):  # 빈 시간표 제외
+        if item.get('courseName'):
             formatted.append(
                 f"- {item.get('courseName', '과목명 없음')} "
                 f"({item.get('dayOfWeek', '?')}요일 "
@@ -90,17 +82,14 @@ def extract_sources(docs: List) -> List[Dict]:
 def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
     """시스템 프롬프트 생성"""
     
-    # 기본 정보
     base_info = f"""[사용자 정보]
 - 이름: {user_info.get('name', '미제공')}
 - 학과: {user_info.get('department', '미제공')}
 - 학년: {user_info.get('grade', '미제공')}"""
     
-    # 추가 정보가 있으면 포함
     if user_info.get('additional_info'):
         base_info += f"\n- 추가정보: {user_info['additional_info']}"
     
-    # 시간표 정보
     timetable_info = f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
     
     system_prompt = f"""너는 성균관대학교 학생을 돕는 AI 어시스턴트야.
@@ -111,14 +100,14 @@ def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
 [답변 규칙]
 1. 제공된 참고 문서에 명확한 정보가 있으면 그것을 기반으로 답변
 2. 날짜가 있는 정보는 반드시 날짜를 함께 언급
-3. 여러 문서에서 정보를 찾았다면 출처(게시판)도 언급
-4. 정보가 불확실하거나 없으면 솔직하게 모른다고 말하기
-5. 마크다운 형식으로 출력 (중요한 날짜, 기한은 **볼드**로 강조)
-6. 여러 항목이 있으면 리스트로 정리
-7. 사용자 정보(학과, 학년, 시간표)를 고려한 맞춤형 답변 제공
-
-[추가 정보 안내]
-답변 후 필요시 "💡 학점, 소득분위 등을 알려주시면 더 정확한 답변이 가능합니다" 를 자연스럽게 포함
+3. 정보가 불확실하거나 없으면 솔직하게 모른다고 말하기
+4. **반드시 마크다운 형식으로 출력**:
+   - 리스트는 `*` 또는 `-` 사용
+   - 리스트 앞뒤로 빈 줄 필수 (예: 문단\n\n* 리스트1\n* 리스트2\n\n다음 문단)
+   - 중요한 날짜, 기한은 **볼드**로 강조
+   - 제목은 ## 또는 ### 사용
+5. 여러 항목이 있으면 리스트로 정리
+6. 사용자 정보(학과, 학년, 시간표)를 고려한 맞춤형 답변 제공
 
 [언어]
 사용자가 한국어로 물으면 한국어로, 영어로 물으면 영어로 답변
@@ -127,110 +116,38 @@ def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
     return system_prompt
 
 
-# def check_needs_additional_info(
-#     question: str,
-#     user_info: Dict,
-#     llm: ChatOpenAI
-# ) -> Dict:
-#     """
-#     질문 분석 후 추가 정보 필요 여부 판단
-    
-#     Returns:
-#         {
-#             "needs_more_info": bool,
-#             "reason": str,
-#             "suggestion": str
-#         }
-#     """
-    
-#     # 사용자가 이미 제공한 정보
-#     existing_info = f"""
-# - 학과: {user_info.get('department', '미제공')}
-# - 학년: {user_info.get('grade', '미제공')}
-# - 추가정보: {user_info.get('additional_info', '없음')}
-# """
-    
-#     analysis_prompt = f"""
-# 질문: "{question}"
-
-# 현재 사용자 정보:
-# {existing_info}
-
-# 이 질문에 답변하기 위해 추가로 필요한 정보가 있는지 판단해줘.
-
-# 응답 형식 (JSON만 출력, 다른 텍스트 없이):
-# {{
-#   "needs_more_info": true 또는 false,
-#   "reason": "추가 정보가 필요한 이유 (한국어로 친절하게)",
-#   "suggestion": "어떤 정보를 어떻게 입력하라고 안내할지 (구체적으로)"
-# }}
-
-# 판단 기준:
-# - "장학금", "지원 자격" 관련 → 학점, 소득분위 필요
-# - "교환학생" 관련 → 학점, 어학성적 필요
-# - 일반적인 일정, 공지 조회 → 추가 정보 불필요
-
-# 예시:
-# 질문: "장학금 알려줘"
-# → {{"needs_more_info": true, "reason": "장학금 지원 자격을 정확히 확인하려면 추가 정보가 필요합니다", "suggestion": "학점(평점)과 소득분위를 알려주세요. 예: 평점 3.5, 소득 5분위"}}
-
-# 질문: "중간고사 일정은?"
-# → {{"needs_more_info": false, "reason": "", "suggestion": ""}}
-# """
-    
-#     try:
-#         response = llm.invoke([HumanMessage(content=analysis_prompt)])
-#         # JSON 파싱
-#         content = response.content.strip()
-#         # ```json ``` 제거
-#         if content.startswith("```"):
-#             content = content.split("```")[1]
-#             if content.startswith("json"):
-#                 content = content[4:]
-        
-#         analysis = json.loads(content.strip())
-#         return analysis
-#     except Exception as e:
-#         print(f"Info check error: {e}")
-#         # 파싱 실패 시 추가 정보 요청 안 함
-#         return {
-#             "needs_more_info": False,
-#             "reason": "",
-#             "suggestion": ""
-#         }
-
-
-def generate_rag_response(
+async def generate_rag_response_stream(
     question: str,
     history: List[Dict],
     user_info: Dict,
-    timetable: List[Dict],
-    is_first_question: bool = False
-) -> Dict:
+    timetable: List[Dict]
+) -> AsyncGenerator[Dict, None]:
+    """
+    스트리밍 RAG 응답 생성
+    
+    Yields:
+        - {"type": "sources", "sources": [...]}  # 출처 정보 (첫 번째)
+        - {"type": "content", "content": "토큰"} # 스트리밍 컨텐츠
+        - {"type": "done"}                       # 완료
+        - {"type": "error", "message": "..."}   # 에러
+    """
     
     try:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.2, streaming=True)
+        # LLM 초기화 (streaming=True 필수)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.1, streaming=True)
         
-        # # 1. 세션 첫 질문이면 추가 정보 필요 여부 체크
-        # if is_first_question:
-        #     info_check = check_needs_additional_info(question, user_info, llm)
-            
-        #     if info_check["needs_more_info"]:
-        #         return {
-        #             "type": "info_request",
-        #             "reply": None,
-        #             "sources": [],
-        #             "info_request": {
-        #                 "reason": info_check["reason"],
-        #                 "suggestion": info_check["suggestion"]
-        #             }
-        #         }
-        
-        # 2. 문서 검색
+        # 1. 문서 검색
         retriever = get_retriever(score_threshold=0.5)
         docs = retriever.invoke(question)
         
-        # 3. Context 생성 (메타데이터 포함)
+        # 2. 출처 정보 먼저 전송
+        sources = extract_sources(docs)
+        yield {
+            "type": "sources",
+            "sources": sources
+        }
+        
+        # 3. Context 생성
         context_text = format_docs_with_metadata(docs)
         
         # 4. 시스템 프롬프트 생성
@@ -257,10 +174,64 @@ def generate_rag_response(
         
         messages.append(HumanMessage(content=current_msg))
         
-        # 6. LLM 호출
-        response = llm.invoke(messages)
+        # 6. 스트리밍 응답 생성
+        async for chunk in llm.astream(messages):
+            if chunk.content:
+                yield {
+                    "type": "content",
+                    "content": chunk.content
+                }
         
-        # 7. 출처 추출
+        # 7. 완료 신호
+        yield {"type": "done"}
+        
+    except Exception as e:
+        print(f"RAG Stream Error: {e}")
+        yield {
+            "type": "error",
+            "message": "답변 생성 중 오류가 발생했습니다.",
+            "details": str(e)
+        }
+
+
+def generate_rag_response(
+    question: str,
+    history: List[Dict],
+    user_info: Dict,
+    timetable: List[Dict]
+) -> Dict:
+    """
+    기존 non-streaming 버전 (호환성 유지)
+    """
+    
+    try:
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.2, streaming=True)
+        
+        retriever = get_retriever(score_threshold=0.5)
+        docs = retriever.invoke(question)
+        
+        context_text = format_docs_with_metadata(docs)
+        system_msg = create_system_prompt(user_info, timetable)
+        
+        messages = [SystemMessage(content=system_msg)]
+        
+        for msg in history:
+            if msg["role"] == "user":
+                messages.append(HumanMessage(content=msg["content"]))
+            else:
+                messages.append(AIMessage(content=msg["content"]))
+        
+        current_msg = f"""[참고 문서]
+{context_text}
+
+[질문]
+{question}
+
+위 참고 문서와 사용자 정보를 바탕으로 답변해줘."""
+        
+        messages.append(HumanMessage(content=current_msg))
+        
+        response = llm.invoke(messages)
         sources = extract_sources(docs)
         
         return {
@@ -281,11 +252,7 @@ def generate_rag_response(
         }
 
 
-def translate_response(
-    text: str,
-    target_language: str = "en"
-) -> Dict:
-    
+def translate_response(text: str, target_language: str = "en") -> Dict:
     try:
         llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
         
@@ -317,7 +284,8 @@ def translate_response(
             "translated_text": None,
             "error": f"번역 중 오류가 발생했습니다: {str(e)}"
         }
-        
+
+
 def summarize_bookmark(question, answer):
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
@@ -424,7 +392,3 @@ def extract_schedule_from_dialog(question: str, answer: str):
 """
 
     return llm.invoke(prompt).content.strip()
-
-
-
-
