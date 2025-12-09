@@ -18,6 +18,9 @@ from langchain_core.documents import Document
 # 크롤러 모듈 import
 from crawler.cse_notice import crawl_notices as crawl_cse, notices_to_documents as cse_ntd
 from crawler.sw_notice import crawl_notices as crawl_sw, notices_to_documents as sw_ntd
+from crawler.dorm_seoul import crawl_notices as crawl_dorm_seoul, notices_to_documents as dorm_seoul_ntd
+from crawler.dorm_suwon import crawl_notices as crawl_dorm_suwon, notices_to_documents as dorm_suwon_ntd
+from crawler.skku_notice import crawl_notices as crawl_skku_main, notices_to_documents as skku_main_ntd
 
 # 정적 데이터 import
 try:
@@ -81,20 +84,15 @@ def save_crawled_data(crawled_data: Dict[str, Set[str]]):
 def update_latest_notices(all_notices: List[dict], top_n: int = 3):
     """
     전체 게시판의 최신 공지사항 업데이트 (통합)
-    
-    Args:
-        all_notices: 모든 게시판의 공지사항 리스트 (board_name 포함)
-        top_n: 저장할 최신 공지 개수
     """
     try:
-        # 날짜순 정렬 (최신순)
+        # 날짜순 정렬 (최신순) – None이면 '1970-01-01'로 대체
         sorted_notices = sorted(
             all_notices,
-            key=lambda x: x.get('date', '1970-01-01'),
-            reverse=True
+            key=lambda x: (x.get('date') or '1970-01-01'),
+            reverse=True,
         )
-        
-        # 상위 top_n개만 선택
+
         top_notices = []
         for notice in sorted_notices[:top_n]:
             top_notices.append({
@@ -104,15 +102,14 @@ def update_latest_notices(all_notices: List[dict], top_n: int = 3):
                 'post_num': notice.get('post_num', ''),
                 'link': notice.get('link', '')
             })
-        
-        # 저장
+
         with open(LATEST_NOTICES_FILE, 'w', encoding='utf-8') as f:
             json.dump(top_notices, f, ensure_ascii=False, indent=2)
-        
+
         print(f"\n📌 Updated top {top_n} latest notices (all boards combined)")
         for i, notice in enumerate(top_notices, 1):
             print(f"  {i}. [{notice['board_name']}] {notice['title']} ({notice['date']})")
-        
+
     except Exception as e:
         print(f"⚠️ Error updating latest notices: {e}")
 
@@ -262,6 +259,33 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
                 "delay": 2
             }
         },
+        {
+            "board_name": "기숙사_서울",
+            "crawl_func": crawl_dorm_seoul,
+            "notices_to_docs_func": dorm_seoul_ntd,
+            "crawl_kwargs": {
+                "max_pages": 3,   # 필요하면 늘리기
+                "delay": 2
+            }
+        },
+        {
+            "board_name": "기숙사_수원",
+            "crawl_func": crawl_dorm_suwon,
+            "notices_to_docs_func": dorm_suwon_ntd,
+            "crawl_kwargs": {
+                "max_pages": 3,
+                "delay": 2
+            }
+        },
+        {
+            "board_name": "학교_대표공지",
+            "crawl_func": crawl_skku_main,
+            "notices_to_docs_func": skku_main_ntd,
+            "crawl_kwargs": {
+                "max_pages": 2,   # 이미 테스트에서 2 페이지만 돌렸으니까 일단 2
+                "delay": 2
+            }
+        },
         # 기숙사 크롤러 추가 시 (예시)
         # {
         #     "board_name": "기숙사",
@@ -393,6 +417,9 @@ def main(
     
     # 1. 기존 크롤링 데이터 로드
     crawled_data = load_crawled_data()
+    if not update_mode:
+        print("\n🧹 create 모드이므로 기존 crawled_data 기록을 무시하고 전체 재크롤링합니다.")
+        crawled_data = {}
     total_existing = sum(len(nums) for nums in crawled_data.values())
     print(f"\n📋 Loaded existing crawled data:")
     for board, nums in crawled_data.items():
