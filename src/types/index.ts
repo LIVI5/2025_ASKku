@@ -47,18 +47,14 @@ export type ChatMessage = {
     format: 'text' | 'markdown' | 'sources';
 };
 
-export interface BookmarkSummary {
-    short?: string
-    key_points?: string[]
-    action_items?: string[]
-}
-
 export interface Bookmark {
-    id: string
-    question: string
-    answer: string
-    timestamp: string
-    summary?: BookmarkSummary
+  id: string
+  bookmarkID?: number
+  title: string
+  question: string
+  answer: string
+  sources?: any[]
+  timestamp: string
 }
 
 

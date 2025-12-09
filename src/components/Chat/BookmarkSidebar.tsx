@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bookmark } from '../../types'
-import SummaryModal from './SummaryModal'
+import BookmarkDetailModal from './BookmarkDetailModal'
 
 interface BookmarkSidebarProps {
     bookmarks: Bookmark[]
@@ -9,10 +9,7 @@ interface BookmarkSidebarProps {
 }
 
 export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: BookmarkSidebarProps) {
-    const [summaryModal, setSummaryModal] = useState<{ isOpen: boolean; content: string }>({
-        isOpen: false,
-        content: ''
-    })
+    const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null)
 
     const formatDate = (timestamp: string) => {
         const date = new Date(timestamp)
@@ -25,24 +22,9 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
         })
     }
 
-    const handleSummarize = (bookmark: Bookmark) => {
-        if (bookmark.summary) {
-            // 백엔드에서 제공한 summary 사용
-            setSummaryModal({
-                isOpen: true,
-                content: JSON.stringify(bookmark.summary, null, 2)
-            });
-        } else {
-            // summary가 아직 없는 경우 fallback 처리
-            const sentences = bookmark.answer.split(/(?<=[.?!])\s+/);
-            const summary = sentences.slice(0, 3).join(" ") + (sentences.length > 3 ? "..." : "");
-
-            setSummaryModal({
-                isOpen: true,
-                content: summary
-            });
-        }
-    };
+    const handleBookmarkClick = (bookmark: Bookmark) => {
+        setSelectedBookmark(bookmark)
+    }
 
     return (
         <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
@@ -58,69 +40,80 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {bookmarks.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="mx-auto mb-3 text-gray-300">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="currentColor" strokeWidth="1.5"/>
+                        </svg>
                         <p className="text-sm">북마크된 대화가 없습니다</p>
                     </div>
                 ) : (
-                    bookmarks.map((bookmark) => {
-                        return (
-                            <div
-                                key={bookmark.id}
-                                className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-askku-primary transition-colors"
-                            >
-                                <div className="flex items-start justify-between mb-2">
-                                    <span className="text-xs text-gray-500">
-                                        {formatDate(bookmark.timestamp)}
-                                    </span>
-                                    <button
-                                        onClick={() => onRemove(bookmark.id)}
-                                        className="text-gray-400 hover:text-red-500 transition-colors"
-                                        title="삭제"
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                            <path
-                                                d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div className="space-y-2">
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-700 mb-1 line-clamp-1">Q: {bookmark.question}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600 h-16 overflow-hidden line-clamp-3">A: {bookmark.answer}</p>
-                                    </div>
-                                </div>
-
-                                {/* Action Button - Only Summary */}
-                                <div className="mt-3">
-                                    <button
-                                        onClick={() => handleSummarize(bookmark)}
-                                        className="w-full px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-xs font-medium flex items-center justify-center gap-1"
-                                        title="요약하기"
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="currentColor" />
-                                        </svg>
-                                        요약하기
-                                    </button>
-                                </div>
+                    bookmarks.map((bookmark) => (
+                        <div
+                            key={bookmark.id}
+                            className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-askku-primary hover:shadow-sm transition-all cursor-pointer group"
+                            onClick={() => handleBookmarkClick(bookmark)}
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-2">
+                                <span className="text-xs text-gray-500">
+                                    {formatDate(bookmark.timestamp)}
+                                </span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onRemove(bookmark.id)
+                                    }}
+                                    className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="삭제"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path
+                                            d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                </button>
                             </div>
-                        )
-                    })
+
+                            {/* Title */}
+                            <div className="flex items-start gap-2 mb-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-500 flex-shrink-0 mt-0.5">
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                </svg>
+                                <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 flex-1">
+                                    {bookmark.title || bookmark.question.substring(0, 30) + '...'}
+                                </h3>
+                            </div>
+
+                            {/* Preview */}
+                            <p className="text-xs text-gray-500 line-clamp-2 pl-6">
+                                {bookmark.question}
+                            </p>
+
+                            {/* Click indicator */}
+                            <div className="flex items-center justify-end mt-2 text-xs text-askku-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="mr-1">자세히 보기</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    ))
                 )}
             </div>
 
-            {/* Summary Modal */}
-            <SummaryModal
-                isOpen={summaryModal.isOpen}
-                onClose={() => setSummaryModal({ ...summaryModal, isOpen: false })}
-                content={summaryModal.content}
-            />
+            {/* Detail Modal */}
+            {selectedBookmark && (
+                <BookmarkDetailModal
+                    isOpen={!!selectedBookmark}
+                    onClose={() => setSelectedBookmark(null)}
+                    title={selectedBookmark.title || '북마크 상세'}
+                    question={selectedBookmark.question}
+                    answer={selectedBookmark.answer}
+                />
+            )}
 
             {/* Clear All Button */}
             {bookmarks.length > 0 && (

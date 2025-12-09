@@ -216,7 +216,7 @@ export const generateAIResponse = async (
 }
 
 // ------------------------------
-// BOOKMARKS (LOCAL)
+// BOOKMARKS (SERVER + LOCAL)
 // ------------------------------
 
 export const getBookmarks = (): Bookmark[] => {
@@ -225,7 +225,7 @@ export const getBookmarks = (): Bookmark[] => {
 }
 
 export const addBookmark = async (
-    messageId: string,
+    messageId: string,  // 세션 메시지 ID (북마크 표시용)
     question: string,
     answer: string
 ): Promise<Bookmark | null> => {
@@ -237,14 +237,18 @@ export const addBookmark = async (
 
         if (!res.data.success) return null
 
+        // 백엔드 응답에서 데이터 매핑
         const newBookmark: Bookmark = {
-            id: res.data.bookmark.id,
-            question: res.data.bookmark.question,
-            answer: res.data.bookmark.answer,
-            summary: res.data.bookmark.summary,
-            timestamp: new Date().toISOString()
+            id: messageId,  // 세션에서 사용하는 메시지 ID
+            bookmarkID: res.data.bookmark.bookmarkID,  // DB ID
+            title: res.data.bookmark.title,
+            question: res.data.bookmark.question || question,
+            answer: res.data.bookmark.answer || answer,
+            sources: res.data.bookmark.sources,
+            timestamp: res.data.bookmark.createdAt || new Date().toISOString()
         }
 
+        // localStorage 업데이트
         const bookmarks = getBookmarks()
         bookmarks.unshift(newBookmark)
         localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
@@ -256,17 +260,37 @@ export const addBookmark = async (
     }
 }
 
-export const removeBookmark = (messageId: string): void => {
-    const bookmarks = getBookmarks().filter(b => b.id !== messageId)
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
+export const removeBookmark = async (bookmarkId: string): Promise<void> => {
+    try {
+        const bookmarks = getBookmarks()
+        const bookmark = bookmarks.find(b => 
+            b.id === bookmarkId || b.bookmarkID?.toString() === bookmarkId
+        )
 
-    const session = getCurrentSession()
-    if (session) {
-        const msg = session.messages.find(m => m.id === messageId)
-        if (msg) {
-            msg.isBookmarked = false
-            saveSession(session)
+        if (!bookmark?.bookmarkID) {
+            console.warn('Bookmark not found or missing bookmarkID')
+            return
         }
+
+        // 서버에서 삭제
+        await api.delete(`/api/bookmarks/${bookmark.bookmarkID}`)
+        
+        // localStorage에서 삭제
+        const updated = bookmarks.filter(b => b.id !== bookmarkId)
+        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updated))
+
+        // 세션에서 북마크 플래그 제거
+        const session = getCurrentSession()
+        if (session) {
+            const msg = session.messages.find(m => m.id === bookmarkId)
+            if (msg) {
+                msg.isBookmarked = false
+                saveSession(session)
+            }
+        }
+    } catch (err) {
+        console.error('Remove Bookmark Error:', err)
+        throw err
     }
 }
 
@@ -290,6 +314,34 @@ export const toggleMessageBookmark = (messageId: string): void => {
     }
 }
 
+export const clearAllBookmarks = async (): Promise<void> => {
+    try {
+        const bookmarks = getBookmarks()
+        
+        // 서버에서 모두 삭제
+        await Promise.all(
+            bookmarks
+                .filter(b => b.bookmarkID)  // bookmarkID가 있는 것만
+                .map(b => api.delete(`/api/bookmarks/${b.bookmarkID}`))
+        )
+
+        // localStorage 클리어
+        localStorage.removeItem(BOOKMARKS_KEY)
+
+        // 세션 플래그 클리어
+        const session = getCurrentSession()
+        if (session) {
+            session.messages.forEach(m => {
+                if (m.isBookmarked) m.isBookmarked = false
+            })
+            saveSession(session)
+        }
+    } catch (err) {
+        console.error('Clear All Bookmarks Error:', err)
+        throw err
+    }
+}
+
 // ------------------------------
 // SCHEDULE EXTRACTION
 // ------------------------------
@@ -309,15 +361,4 @@ export const extractSchedulesFromConversation = async (
         console.error("Schedule Extract Error:", e)
         return []
     }
-}
-
-export const clearAllBookmarks = (): void => {
-    const session = getCurrentSession()
-    if (session) {
-        session.messages.forEach(m => {
-            if (m.isBookmarked) m.isBookmarked = false
-        })
-        saveSession(session)
-    }
-    localStorage.removeItem(BOOKMARKS_KEY)
 }
