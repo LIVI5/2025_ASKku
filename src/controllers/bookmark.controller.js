@@ -1,7 +1,7 @@
 const { Bookmark } = require("../models");
 const axios = require("axios");
 
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8001";  // ✅ 8001로 수정
 
 // ==================== 북마크 생성 ====================
 const createBookmark = async (req, res) => {
@@ -16,42 +16,50 @@ const createBookmark = async (req, res) => {
       });
     }
 
+    // 1. 제목 생성 (필수)
+    let title = question.substring(0, 30);  // 기본값
+    
+    try {
+      const titleResponse = await axios.post(`${FASTAPI_URL}/bookmark/title`, {
+        question,
+        answer
+      });
+      title = titleResponse.data?.title || title;
+    } catch (err) {
+      console.warn("Title generation failed, using fallback:", err.message);
+    }
+
+    // 2. DB 저장
     const bookmark = await Bookmark.create({
       userID,
+      title,
       question,
       answer,
       sources: sources || null,
-      summary: null
     });
-
-    // 요약 생성 요청 → FASTAPI
-    const response = await axios.post(`${FASTAPI_URL}/bookmark/summary`, {
-      question,
-      answer
-    });
-
-    const structuredSummary = response.data?.summary || null;
-
-    bookmark.summary = structuredSummary;
-    await bookmark.save();
 
     return res.status(201).json({
       success: true,
-      message: "북마크가 저장되었고 요약이 생성되었습니다.",
-      bookmark,
-      summary: structuredSummary
+      message: "북마크가 저장되었습니다.",
+      bookmark: {
+        bookmarkID: bookmark.bookmarkID,
+        title: bookmark.title,
+        question: bookmark.question,
+        answer: bookmark.answer,
+        sources: bookmark.sources,
+        createdAt: bookmark.createdAt
+      }
     });
 
   } catch (err) {
-    console.error("Bookmark Summary Error:", err);
+    console.error("Bookmark Creation Error:", err);
     return res.status(500).json({
       success: false,
-      message: "북마크 저장 또는 요약 중 오류 발생",
+      message: "북마크 저장 중 오류 발생",
       error: err.message
     });
   }
 };
-
 
 
 // ==================== 내 북마크 목록 조회 ====================
@@ -62,7 +70,7 @@ const getMyBookmarks = async (req, res) => {
     const bookmarks = await Bookmark.findAll({
       where: { userID },
       order: [["createdAt", "DESC"]],
-      attributes: ["bookmarkID", "question", "createdAt"], // 목록에서는 간단하게
+      attributes: ["bookmarkID", "title", "createdAt"], // 제목만 표시
     });
 
     return res.json({
@@ -100,9 +108,18 @@ const getBookmarkDetail = async (req, res) => {
       });
     }
 
+    // 전체 내용 반환
     return res.json({
       success: true,
-      bookmark,
+      bookmark: {
+        bookmarkID: bookmark.bookmarkID,
+        title: bookmark.title,
+        question: bookmark.question,
+        answer: bookmark.answer,
+        sources: bookmark.sources,
+        summary: bookmark.summary,
+        createdAt: bookmark.createdAt
+      }
     });
 
   } catch (err) {

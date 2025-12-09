@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { User, Timetable, TimetableItem } = require("../models");
 
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8001";
 
 // ==================== RAG 질문 ====================
 const askRAG = async (req, res) => {
@@ -67,15 +67,15 @@ const askRAG = async (req, res) => {
 
     const data = response.data;
 
-    // 5. 추가 정보 요청인 경우
-    if (data.type === "info_request") {
-      return res.json({
-        success: true,
-        type: "info_request",
-        reason: data.reason,
-        suggestion: data.suggestion,
-      });
-    }
+    // // 5. 추가 정보 요청인 경우
+    // if (data.type === "info_request") {
+    //   return res.json({
+    //     success: true,
+    //     type: "info_request",
+    //     reason: data.reason,
+    //     suggestion: data.suggestion,
+    //   });
+    // }
 
     // 6. 정상 답변인 경우
     if (data.type === "answer") {

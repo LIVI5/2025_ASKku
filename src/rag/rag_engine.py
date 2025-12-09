@@ -285,7 +285,68 @@ def translate_response(text: str, target_language: str = "en") -> Dict:
             "error": f"번역 중 오류가 발생했습니다: {str(e)}"
         }
 
+def generate_bookmark_title(question: str, answer: str) -> str:
+    """
+    질문과 답변을 바탕으로 북마크 제목 생성
+    ChatGPT 스타일 - 짧고 명확한 제목
+    
+    답변을 참고하여 대화 맥락을 파악하고 완전한 제목 생성
+    """
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
+    prompt = f"""
+다음 대화의 핵심 주제를 파악하여 제목을 생성해줘.
+
+중요: 질문만 보면 애매할 수 있으므로, 답변 내용을 참고하여 완전한 제목을 만들어야 해.
+
+규칙:
+1. 최대 30자 이내
+2. 답변 내용을 분석하여 대화의 실제 주제 파악
+3. 질문이 불완전하거나 맥락 의존적이면 답변에서 주제 추출
+4. 명사형으로 끝낼 것 (예: "경영학과 졸업요건", "2학기 기말고사 일정")
+5. 특수문자나 이모지 사용 금지
+6. "~에 대한 질문", "~관련" 같은 불필요한 표현 제거
+7. 가장 중요한 키워드를 앞에 배치
+
+예시:
+- 질문: "12월 학사일정 알려줘"
+  답변: "12월에는 기말고사가..."
+  제목: "12월 학사일정"
+
+- 질문: "소프트웨어학과 졸업요건이 뭐야?"
+  답변: "소프트웨어학과 졸업요건은 130학점..."
+  제목: "소프트웨어학과 졸업요건"
+
+- 질문: "그럼 경영학과는?"
+  답변: "경영학과 졸업요건은 130학점이며..."
+  제목: "경영학과 졸업요건"  ← 답변에서 주제 파악!
+
+- 질문: "시험은 언제야?"
+  답변: "2학기 기말고사는 12월 15일부터..."
+  제목: "2학기 기말고사 일정"  ← 답변에서 구체화!
+
+대화:
+질문: {question}
+답변: {answer[:300]}...
+
+제목만 출력:
+"""
+
+    try:
+        title = llm.invoke(prompt).content.strip()
+        # 따옴표 제거
+        title = title.strip('"\'')
+        # 최대 길이 제한
+        if len(title) > 50:
+            title = title[:47] + "..."
+        return title
+    except Exception as e:
+        print(f"Title generation error: {e}")
+        # 실패 시 질문의 첫 30자 사용
+        return question[:30] + ("..." if len(question) > 30 else "")
+
+
+''' 요약 기능 - 현재 사용 안 함
 def summarize_bookmark(question, answer):
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
@@ -323,7 +384,7 @@ def summarize_bookmark(question, answer):
 """
 
     return llm.invoke(prompt).content.strip()
-
+'''
 
 def extract_schedule_from_dialog(question: str, answer: str):
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)

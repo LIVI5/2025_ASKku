@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
 from typing import List, Dict, Optional, AsyncGenerator
-from rag_engine import generate_rag_response_stream, translate_response, summarize_bookmark, extract_schedule_from_dialog
+from rag_engine import generate_rag_response_stream, translate_response, generate_bookmark_title, extract_schedule_from_dialog
 
 app = FastAPI(title="SKKU RAG API")
 
@@ -32,7 +32,7 @@ class TranslateRequest(BaseModel):
     target_language: str
 
 
-class BookmarkSummaryRequest(BaseModel):
+class BookmarkTitleRequest(BaseModel):
     question: str
     answer: str
 
@@ -84,7 +84,7 @@ async def chat(req: ChatRequest):
             }
             yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
             if event.get("type") == "content":
-                    await asyncio.sleep(0.03)
+                    await asyncio.sleep(0.05)
     
     return StreamingResponse(
         event_generator(),
@@ -137,7 +137,7 @@ async def health_check():
         "message": "All systems operational" if db_exists else "Please run ingest.py first"
     }
 
-
+''' 사용 x
 @app.post("/bookmark/summary")
 async def bookmark_summary(req: BookmarkSummaryRequest):
     """북마크 내용 요약 API"""
@@ -154,6 +154,25 @@ async def bookmark_summary(req: BookmarkSummaryRequest):
 
     except Exception as e:
         print("Bookmark summary error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+'''
+
+@app.post("/bookmark/title")
+async def bookmark_title(req: BookmarkTitleRequest):
+    """북마크 제목 생성 API"""
+    try:
+        title = generate_bookmark_title(req.question, req.answer)
+
+        if not title:
+            raise HTTPException(status_code=500, detail="제목 생성 실패")
+
+        return {
+            "success": True,
+            "title": title
+        }
+
+    except Exception as e:
+        print("Bookmark title error:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
