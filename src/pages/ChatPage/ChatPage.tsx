@@ -85,8 +85,8 @@ export default function ChatPage() {
         const userMessage = addMessage(content, 'user', 'text')
         setMessages(prev => [...prev, userMessage])
 
-        // 2. 빈 AI 메시지 생성
-        const aiMessage = addMessage('', 'assistant', 'markdown')
+        // 2. 로딩 상태의 빈 AI 메시지 생성
+        const aiMessage = addMessage('', 'assistant', 'markdown', true)  // isLoading=true
         setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
 
@@ -98,13 +98,13 @@ export default function ChatPage() {
                 // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
-                    updateMessage(aiMessage.id, accumulatedText)
-                    
-                    // UI 업데이트
-                    setMessages(prev => 
-                        prev.map(m => 
-                            m.id === aiMessage.id 
-                                ? { ...m, content: accumulatedText }
+                    updateMessage(aiMessage.id, accumulatedText, false)  // isLoading=false
+
+                    // UI 업데이트 (로딩 해제 + 내용 업데이트)
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, content: accumulatedText, isLoading: false }
                                 : m
                         )
                     )
@@ -116,16 +116,23 @@ export default function ChatPage() {
                 // onComplete: 완료 시
                 () => {
                     console.log('Streaming completed')
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, isLoading: false }
+                                : m
+                        )
+                    )
                     setIsLoading(false)
                 },
                 // onError: 에러 시
                 (error) => {
                     console.error('Stream error:', error)
                     updateMessage(aiMessage.id, '❌ 답변 생성 중 오류가 발생했습니다.')
-                    setMessages(prev => 
-                        prev.map(m => 
-                            m.id === aiMessage.id 
-                                ? { ...m, content: '❌ 답변 생성 중 오류가 발생했습니다.' }
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, content: '❌ 답변 생성 중 오류가 발생했습니다.', isLoading: false }
                                 : m
                         )
                     )
@@ -134,6 +141,13 @@ export default function ChatPage() {
             )
         } catch (error) {
             console.error('Error in handleSendMessage:', error)
+            setMessages(prev =>
+                prev.map(m =>
+                    m.id === aiMessage.id
+                        ? { ...m, isLoading: false }
+                        : m
+                )
+            )
             setIsLoading(false)
         }
     }
@@ -143,11 +157,11 @@ export default function ChatPage() {
     // ---------------------------
     const handleTranslate = async (content: string) => {
         const request = `Translate the following text to English:\n\n${content}`
-        
+
         const userMessage = addMessage(request, 'user', 'text')
         setMessages(prev => [...prev, userMessage])
 
-        const aiMessage = addMessage('', 'assistant', 'markdown')
+        const aiMessage = addMessage('', 'assistant', 'markdown', true)  // isLoading=true
         setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
 
@@ -158,12 +172,12 @@ export default function ChatPage() {
                 request,
                 (chunk) => {
                     accumulatedText += chunk
-                    updateMessage(aiMessage.id, accumulatedText)
-                    
-                    setMessages(prev => 
-                        prev.map(m => 
-                            m.id === aiMessage.id 
-                                ? { ...m, content: accumulatedText }
+                    updateMessage(aiMessage.id, accumulatedText, false)  // isLoading=false
+
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, content: accumulatedText, isLoading: false }
                                 : m
                         )
                     )
@@ -186,8 +200,8 @@ export default function ChatPage() {
     // ---------------------------
     // 북마크 토글
     // ---------------------------
-    const handleBookmark = (messageId: string) => {
-        toggleMessageBookmark(messageId)
+    const handleBookmark = async (messageId: string) => {
+        await toggleMessageBookmark(messageId)
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])
         setBookmarks(getBookmarks())
@@ -267,9 +281,9 @@ export default function ChatPage() {
     // ---------------------------
     // 북마크 전체 삭제
     // ---------------------------
-    const handleClearAllBookmarks = () => {
+    const handleClearAllBookmarks = async () => {
         if (!window.confirm('모든 북마크를 삭제하시겠어요?')) return
-        clearAllBookmarks()
+        await clearAllBookmarks()
         setBookmarks([])
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])
@@ -340,23 +354,6 @@ export default function ChatPage() {
                                         onScheduleExtract={handleScheduleExtract}
                                     />
                                 ))}
-
-                                {isLoading && (
-                                    <div className="flex justify-start mb-4">
-                                        <div className="flex gap-3 max-w-[70%]">
-                                            <div className="w-10 h-10 rounded-full bg-askku-primary flex items-center justify-center">
-                                                <img src={logoImage} alt="ASKku Bot" className="w-6 h-6" />
-                                            </div>
-                                            <div className="bg-gray-100 px-4 py-3 rounded-lg">
-                                                <div className="flex gap-1">
-                                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             <div ref={messagesEndRef} />

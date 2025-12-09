@@ -45,16 +45,17 @@ export type ChatMessage = {
     timestamp: string;
     isBookmarked: boolean;
     format: 'text' | 'markdown' | 'sources';
+    isLoading?: boolean; // 스트리밍 로딩 중 표시
 };
 
 export interface Bookmark {
-  id: string
-  bookmarkID?: number
-  title: string
-  question: string
-  answer: string
-  sources?: any[]
-  timestamp: string
+    id: string
+    bookmarkID?: number
+    title: string
+    question: string
+    answer: string
+    sources?: any[]
+    timestamp: string
 }
 
 

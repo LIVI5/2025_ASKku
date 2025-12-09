@@ -39,7 +39,8 @@ export const clearSession = (): void => {
 export const addMessage = (
     content: string,
     role: 'user' | 'assistant',
-    format: 'text' | 'markdown' | 'sources' = 'text'
+    format: 'text' | 'markdown' | 'sources' = 'text',
+    isLoading?: boolean
 ): ChatMessage => {
 
     let session = getCurrentSession()
@@ -51,7 +52,8 @@ export const addMessage = (
         content,
         timestamp: new Date().toISOString(),
         isBookmarked: false,
-        format
+        format,
+        isLoading: isLoading ?? false
     }
 
     session.messages.push(message)
@@ -61,13 +63,16 @@ export const addMessage = (
 }
 
 // 메시지 업데이트 (스트리밍용)
-export const updateMessage = (messageId: string, content: string): void => {
+export const updateMessage = (messageId: string, content: string, isLoading?: boolean): void => {
     const session = getCurrentSession()
     if (!session) return
 
     const message = session.messages.find(m => m.id === messageId)
     if (message) {
         message.content = content
+        if (isLoading !== undefined) {
+            message.isLoading = isLoading
+        }
         saveSession(session)
     }
 }
@@ -107,10 +112,10 @@ export const generateAIResponseStream = async (
         // RAG API는 8001 포트
         const baseURL = 'http://localhost:8001'
         const url = `${baseURL}/chat`
-        
+
         console.log('[DEBUG] Fetching:', url)
         console.log('[DEBUG] Payload:', { message: userMessage, history: recentHistory })
-        
+
         // Fetch API로 스트리밍 요청
         const response = await fetch(url, {
             method: 'POST',
@@ -146,11 +151,11 @@ export const generateAIResponseStream = async (
 
         while (true) {
             const { done, value } = await reader.read()
-            
+
             if (done) break
 
             buffer += decoder.decode(value, { stream: true })
-            
+
             // SSE 형식 파싱: "data: {...}\n\n"
             const lines = buffer.split('\n\n')
             buffer = lines.pop() || ''
@@ -164,7 +169,7 @@ export const generateAIResponseStream = async (
 
                     if (event.type === 'sources') {
                         if (onSources) onSources(event.sources)
-                    } 
+                    }
                     else if (event.type === 'content') {
                         onChunk(event.content)
                     }
@@ -263,7 +268,7 @@ export const addBookmark = async (
 export const removeBookmark = async (bookmarkId: string): Promise<void> => {
     try {
         const bookmarks = getBookmarks()
-        const bookmark = bookmarks.find(b => 
+        const bookmark = bookmarks.find(b =>
             b.id === bookmarkId || b.bookmarkID?.toString() === bookmarkId
         )
 
@@ -274,7 +279,7 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
 
         // 서버에서 삭제
         await api.delete(`/api/bookmarks/${bookmark.bookmarkID}`)
-        
+
         // localStorage에서 삭제
         const updated = bookmarks.filter(b => b.id !== bookmarkId)
         localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updated))
@@ -294,7 +299,7 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
     }
 }
 
-export const toggleMessageBookmark = (messageId: string): void => {
+export const toggleMessageBookmark = async (messageId: string): Promise<void> => {
     const session = getCurrentSession()
     if (!session) return
 
@@ -308,16 +313,16 @@ export const toggleMessageBookmark = (messageId: string): void => {
     const userMsg = session.messages[idx - 1]
 
     if (msg.isBookmarked && userMsg) {
-        addBookmark(messageId, userMsg.content, msg.content)
+        await addBookmark(messageId, userMsg.content, msg.content)
     } else {
-        removeBookmark(messageId)
+        await removeBookmark(messageId)
     }
 }
 
 export const clearAllBookmarks = async (): Promise<void> => {
     try {
         const bookmarks = getBookmarks()
-        
+
         // 서버에서 모두 삭제
         await Promise.all(
             bookmarks
@@ -355,7 +360,14 @@ export const extractSchedulesFromConversation = async (
         const res = await api.post("/api/schedule/extract", { question, answer })
 
         if (!res.data.success) return []
-        return res.data.schedules
+
+        // 각 일정에 고유 ID 부여 (백엔드 ID가 없거나 중복될 수 있으므로)
+        const schedules = res.data.schedules.map((schedule: ExtractedSchedule, index: number) => ({
+            ...schedule,
+            id: `schedule_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
+        }))
+
+        return schedules
 
     } catch (e) {
         console.error("Schedule Extract Error:", e)
