@@ -25,16 +25,24 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
         })
     }
 
-    const handleSummarize = (answer: string) => {
-        // Simple summary simulation: take first 3 sentences or first 150 chars
-        const sentences = answer.split(/(?<=[.?!])\s+/)
-        const summary = sentences.slice(0, 3).join(' ') + (sentences.length > 3 ? '...' : '')
+    const handleSummarize = (bookmark: Bookmark) => {
+        if (bookmark.summary) {
+            // 백엔드에서 제공한 summary 사용
+            setSummaryModal({
+                isOpen: true,
+                content: JSON.stringify(bookmark.summary, null, 2)
+            });
+        } else {
+            // summary가 아직 없는 경우 fallback 처리
+            const sentences = bookmark.answer.split(/(?<=[.?!])\s+/);
+            const summary = sentences.slice(0, 3).join(" ") + (sentences.length > 3 ? "..." : "");
 
-        setSummaryModal({
-            isOpen: true,
-            content: summary
-        })
-    }
+            setSummaryModal({
+                isOpen: true,
+                content: summary
+            });
+        }
+    };
 
     return (
         <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
@@ -91,7 +99,7 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
                                 {/* Action Button - Only Summary */}
                                 <div className="mt-3">
                                     <button
-                                        onClick={() => handleSummarize(bookmark.answer)}
+                                        onClick={() => handleSummarize(bookmark)}
                                         className="w-full px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                         title="요약하기"
                                     >

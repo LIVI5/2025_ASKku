@@ -1,5 +1,10 @@
 import { ChatMessage as ChatMessageType } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import remarkBreaks from 'remark-breaks'
 
 interface ChatMessageProps {
     message: ChatMessageType
@@ -29,14 +34,61 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                         className={`px-4 py-3 rounded-lg ${isUser
                             ? 'bg-askku-primary text-white'
                             : 'bg-gray-100 text-gray-800'
-                            }`}
+                        }`}
                     >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <div className={`text-sm markdown-content ${isUser ? 'text-white' : 'text-gray-800'}`}>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm, remarkBreaks]}
+                                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                                components={{
+                                    // 리스트 스타일 커스터마이징
+                                    ul: ({ node, ...props }) => (
+                                        <ul className="list-disc list-inside space-y-1 my-2" {...props} />
+                                    ),
+                                    ol: ({ node, ...props }) => (
+                                        <ol className="list-decimal list-inside space-y-1 my-2" {...props} />
+                                    ),
+                                    li: ({ node, ...props }) => (
+                                        <li className="ml-2" {...props} />
+                                    ),
+                                    // 헤딩 스타일
+                                    h1: ({ node, ...props }) => (
+                                        <h1 className="text-xl font-bold mt-4 mb-2" {...props} />
+                                    ),
+                                    h2: ({ node, ...props }) => (
+                                        <h2 className="text-lg font-bold mt-3 mb-2" {...props} />
+                                    ),
+                                    h3: ({ node, ...props }) => (
+                                        <h3 className="text-base font-bold mt-2 mb-1" {...props} />
+                                    ),
+                                    // 코드 블록
+                                    code: ({ node, inline, ...props }: any) => (
+                                        inline 
+                                            ? <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props} />
+                                            : <code className="block bg-gray-200 p-2 rounded my-2 text-sm" {...props} />
+                                    ),
+                                    // 강조
+                                    strong: ({ node, ...props }) => (
+                                        <strong className="font-bold" {...props} />
+                                    ),
+                                    // 링크
+                                    a: ({ node, ...props }) => (
+                                        <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+                                    ),
+                                    // 문단
+                                    p: ({ node, ...props }) => (
+                                        <p className="my-1" {...props} />
+                                    )
+                                }}
+                            >
+                                {message.content}
+                            </ReactMarkdown>
+                        </div>
                     </div>
 
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs text-gray-500">{time}</span>
-                           {!isUser && onBookmark && (
+                        {!isUser && onBookmark && (
                             <button
                                 onClick={() => onBookmark(message.id)}
                                 className={`text-xs px-2 py-0.5 rounded transition-colors inline-flex items-center gap-1 ${message.isBookmarked

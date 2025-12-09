@@ -1,16 +1,5 @@
-import { RegisterData, AuthResponse, User } from '../types'
-import { generateToken, decodeToken, verifyToken } from '../utils/jwtUtils'
-import {
-    saveUser,
-    getUserByEmail,
-    getUserById,
-    savePassword,
-    verifyPassword,
-    saveToken,
-    getToken,
-    removeToken
-} from './storageService'
-import { setLastLoginTime } from '../utils/localStorage'
+import api from '../api/axiosInstance';
+import { RegisterData, AuthResponse, User } from '../types';
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
     // Validate email format
@@ -22,88 +11,90 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
         }
     }
 
-    // Check if email already exists
-    if (getUserByEmail(data.email)) {
+    try {
+        const res = await api.post('/api/users/register', {
+            email: data.email,
+            password: data.password,
+            name: `${data.lastName}${data.firstName}`,
+            department: data.department,
+            grade: data.currentGrade,
+            additional_info: null
+        });
+
+        return {
+            success: true,
+            message: '회원가입이 완료되었습니다. 로그인해주세요.'
+        };
+
+    } catch (error: any) {
         return {
             success: false,
-            message: '이미 사용 중인 이메일입니다'
-        }
-    }
-
-    // Create new user
-    const user: User = {
-        id: `user_${Date.now()}`,
-        name: `${data.lastName}${data.firstName}`,
-        email: data.email,
-        admissionYear: data.admissionYear,
-        currentGrade: data.currentGrade,
-        currentSemester: data.currentSemester,
-        department: data.department,
-        createdAt: new Date().toISOString()
-    }
-
-    // Save user and password
-    saveUser(user)
-    savePassword(user.id, data.password)
-
-    // Do NOT auto-login, just return success
-    return {
-        success: true,
-        message: '회원가입이 완료되었습니다. 로그인해주세요.'
+            message: error.response?.data?.message || '회원가입 실패'
+        };
     }
 }
 
 export const login = async (email: string, password: string): Promise<AuthResponse> => {
-    // Find user by email only
-    const user = getUserByEmail(email)
+    try {
+        const res = await api.post('/api/users/login', {
+            identifier: email,
+            password
+        });
 
-    if (!user) {
+        const token = res.data.token;
+
+        // 기존 구조: saveToken(token) → localStorage 사용
+        localStorage.setItem('token', token);
+        localStorage.setItem('lastLogin', new Date().toISOString());
+
+        // 프론트 기존 login() 반환값을 그대로 유지
+        return {
+            success: true,
+            token,
+            message: '로그인 성공',
+            // user는 별도로 호출하지 않으면 null → 기존 코드 동일 유지
+            user: undefined
+        };
+
+    } catch (error: any) {
         return {
             success: false,
-            message: '존재하지 않는 사용자입니다'
-        }
+            message: error.response?.data?.message || '로그인 실패'
+        };
     }
-
-    // Verify password
-    if (!verifyPassword(user.id, password)) {
-        return {
-            success: false,
-            message: '비밀번호가 일치하지 않습니다'
-        }
-    }
-
-    // Generate token
-    const token = generateToken({ userId: user.id, email: user.email })
-    saveToken(token)
-    setLastLoginTime()
-
-    return {
-        success: true,
-        token,
-        user,
-        message: '로그인 성공'
-    }
-}
+};
 
 export const logout = (): void => {
-    removeToken()
-}
+    localStorage.removeItem('token');
+};
 
-export const getCurrentUser = (): User | null => {
-    const token = getToken()
-    if (!token || !verifyToken(token)) {
-        return null
+export const getCurrentUser = async (): Promise<User | null> => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+        const res = await api.get('/api/users/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        return res.data.user as User;
+
+    } catch {
+        return null;
     }
+};
 
-    const payload = decodeToken(token)
-    if (!payload || !payload.userId) {
-        return null
+export const isAuthenticated = async (): Promise<boolean> => {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+        await api.get('/api/users/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return true;
+
+    } catch {
+        return false;
     }
-
-    return getUserById(payload.userId)
-}
-
-export const isAuthenticated = (): boolean => {
-    const token = getToken()
-    return token !== null && verifyToken(token)
-}
+};
