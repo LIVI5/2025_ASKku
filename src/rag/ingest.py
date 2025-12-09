@@ -81,7 +81,7 @@ def save_crawled_data(crawled_data: Dict[str, Set[str]]):
     except Exception as e:
         print(f"❌ Error saving crawled data: {e}")
 
-def update_latest_notices(all_notices: List[dict], top_n: int = 3):
+def update_latest_notices(all_notices: List[dict], top_n: int = 6):
     """
     전체 게시판의 최신 공지사항 업데이트 (통합)
     """
