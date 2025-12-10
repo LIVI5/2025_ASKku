@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getUserInformation, saveUserInformation } from '../../services/myPageService'
+import { saveUserInformation } from '../../services/myPageService'
+import { useUser } from '../../contexts/UserContext'
 
 interface EditInformationModalProps {
     isOpen: boolean
@@ -8,22 +9,33 @@ interface EditInformationModalProps {
 }
 
 export default function EditInformationModal({ isOpen, onClose, onSave }: EditInformationModalProps) {
+    const { user, fetchUser } = useUser()
     const [information, setInformation] = useState('')
 
     useEffect(() => {
         if (isOpen) {
-            const currentInformation = getUserInformation()
-            setInformation(currentInformation || '')
+            setInformation(user?.additional_info || '')
+            console.log('EditInformationModal: Initial information from user context:', user?.additional_info);
         }
-    }, [isOpen])
+    }, [isOpen, user?.additional_info])
 
     if (!isOpen) return null
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        saveUserInformation(information)
-        onSave()
-        onClose()
+        console.log('EditInformationModal: Submitting information:', information);
+        const success = await saveUserInformation(information)
+        console.log('EditInformationModal: saveUserInformation success:', success);
+
+        if (success) {
+            await fetchUser() // Re-fetch user data to update the context
+            console.log('EditInformationModal: User data re-fetched.');
+            onSave()
+            onClose()
+        } else {
+            // Handle error, e.g., show a toast notification
+            console.error('EditInformationModal: Failed to save additional information.');
+        }
     }
 
     return (
