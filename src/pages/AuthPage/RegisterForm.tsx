@@ -16,6 +16,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         currentGrade: 1,
         currentSemester: 1,
         department: '',
+        campus: '',
         password: '',
         confirmPassword: '',
         agreedToTerms: false,
@@ -32,6 +33,11 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         '글로벌경제학과',
         '글로벌경영학과',
         '기타',
+    ]
+    
+    const campuses = [
+        '인문사회캠퍼스',
+        '자연과학캠퍼스',
     ]
 
     // Generate admission year options (current year - 10 to current year)
@@ -95,6 +101,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     currentGrade: formData.currentGrade,
                     currentSemester: formData.currentSemester,
                     department: formData.department,
+                    campus: formData.campus,
                     password: formData.password
                 })
 
@@ -245,22 +252,40 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     </div>
                 </div>
 
-                {/* 학과 */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-800 mb-1.5">학과</label>
-                    <select
-                        name="department"
-                        value={formData.department}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
-                    >
-                        <option value="">선택</option>
-                        {departments.map((dept) => (
-                            <option key={dept} value={dept}>
-                                {dept}
-                            </option>
-                        ))}
-                    </select>
+                {/* 캠퍼스, 학과 */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1.5">캠퍼스</label>
+                        <select
+                            name="campus"
+                            value={formData.campus}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                        >
+                            <option value="">선택</option>
+                            {campuses.map((campus) => (
+                                <option key={campus} value={campus}>
+                                    {campus}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-1.5">학과</label>
+                        <select
+                            name="department"
+                            value={formData.department}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                        >
+                            <option value="">선택</option>
+                            {departments.map((dept) => (
+                                <option key={dept} value={dept}>
+                                    {dept}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* 비밀번호 */}
