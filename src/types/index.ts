@@ -28,6 +28,7 @@ export interface RegisterData {
     currentGrade: number
     currentSemester: number
     department: string
+    campus: string
     password: string
 }
 

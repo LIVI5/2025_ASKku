@@ -16,8 +16,11 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
             email: data.email,
             password: data.password,
             name: `${data.lastName}${data.firstName}`,
+            campus: data.campus,
             department: data.department,
-            grade: data.currentGrade,
+            admissionYear: data.admissionYear,
+            currentGrade: data.currentGrade,
+            currentSemester: data.currentSemester,
             additional_info: null
         });
 
