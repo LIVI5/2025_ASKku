@@ -19,8 +19,8 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
             campus: data.campus,
             department: data.department,
             admissionYear: data.admissionYear,
-            currentGrade: data.currentGrade,
-            currentSemester: data.currentSemester,
+            grade: data.currentGrade,
+            semester: data.currentSemester,
             additional_info: null
         });
 
