@@ -17,13 +17,46 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
         other: '기타'
     }
 
-    const sameDay = (schedule.startDate || schedule.date) === (schedule.endDate || schedule.date)
-    const dateRange = sameDay
-        ? schedule.startDate || schedule.date
-        : `${schedule.startDate || schedule.date} ~ ${schedule.endDate || schedule.date}`
-    const timeRange = schedule.allDay
-        ? '하루종일'
-        : [schedule.startTime, schedule.endTime].filter(Boolean).join(' - ')
+    // 날짜 포맷 함수
+    const formatDate = (dateStr: string | undefined): string => {
+        if (!dateStr) return ''
+        const date = new Date(dateStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
+    // 시간 포맷 함수
+    const formatTime = (timeStr: string | undefined): string => {
+        if (!timeStr) return ''
+        // HH:mm 형식이면 그대로 반환
+        if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr
+        // ISO 형식이면 시간 부분만 추출
+        const match = timeStr.match(/T(\d{2}:\d{2})/)
+        return match ? match[1] : timeStr
+    }
+
+    const startDate = formatDate(schedule.startDate || schedule.date)
+    const endDate = formatDate(schedule.endDate || schedule.date)
+    const sameDay = startDate === endDate
+
+    const dateRange = sameDay ? startDate : `${startDate} ~ ${endDate}`
+
+    let timeRange = ''
+    if (schedule.allDay) {
+        timeRange = '하루종일'
+    } else {
+        const startTime = formatTime(schedule.startTime)
+        const endTime = formatTime(schedule.endTime)
+        if (startTime && endTime) {
+            timeRange = `${startTime} - ${endTime}`
+        } else if (startTime) {
+            timeRange = startTime
+        } else if (endTime) {
+            timeRange = `~ ${endTime}`
+        }
+    }
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -50,7 +83,6 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                         <label className="block text-sm font-medium text-gray-500">유형</label>
                         <p className="text-gray-800">{typeToKorean[schedule.type]}</p>
                     </div>
-
 
                     {schedule.type === 'subject' && schedule.subject && (
                         <div>

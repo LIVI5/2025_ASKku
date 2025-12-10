@@ -39,7 +39,8 @@ export const clearSession = (): void => {
 export const addMessage = (
     content: string,
     role: 'user' | 'assistant',
-    format: 'text' | 'markdown' | 'sources' = 'text'
+    format: 'text' | 'markdown' | 'sources' = 'text',
+    isLoading?: boolean
 ): ChatMessage => {
 
     let session = getCurrentSession()
@@ -51,7 +52,8 @@ export const addMessage = (
         content,
         timestamp: new Date().toISOString(),
         isBookmarked: false,
-        format
+        format,
+        isLoading: isLoading ?? false
     }
 
     session.messages.push(message)
@@ -61,13 +63,16 @@ export const addMessage = (
 }
 
 // 메시지 업데이트 (스트리밍용)
-export const updateMessage = (messageId: string, content: string): void => {
+export const updateMessage = (messageId: string, content: string, isLoading?: boolean): void => {
     const session = getCurrentSession()
     if (!session) return
 
     const message = session.messages.find(m => m.id === messageId)
     if (message) {
         message.content = content
+        if (isLoading !== undefined) {
+            message.isLoading = isLoading
+        }
         saveSession(session)
     }
 }
@@ -107,10 +112,10 @@ export const generateAIResponseStream = async (
         // RAG API는 8001 포트
         const baseURL = 'http://localhost:8001'
         const url = `${baseURL}/chat`
-        
+
         console.log('[DEBUG] Fetching:', url)
         console.log('[DEBUG] Payload:', { message: userMessage, history: recentHistory })
-        
+
         // Fetch API로 스트리밍 요청
         const response = await fetch(url, {
             method: 'POST',
@@ -146,11 +151,11 @@ export const generateAIResponseStream = async (
 
         while (true) {
             const { done, value } = await reader.read()
-            
+
             if (done) break
 
             buffer += decoder.decode(value, { stream: true })
-            
+
             // SSE 형식 파싱: "data: {...}\n\n"
             const lines = buffer.split('\n\n')
             buffer = lines.pop() || ''
@@ -164,7 +169,7 @@ export const generateAIResponseStream = async (
 
                     if (event.type === 'sources') {
                         if (onSources) onSources(event.sources)
-                    } 
+                    }
                     else if (event.type === 'content') {
                         onChunk(event.content)
                     }
@@ -216,7 +221,7 @@ export const generateAIResponse = async (
 }
 
 // ------------------------------
-// BOOKMARKS (LOCAL)
+// BOOKMARKS (SERVER + LOCAL)
 // ------------------------------
 
 export const getBookmarks = (): Bookmark[] => {
@@ -225,7 +230,7 @@ export const getBookmarks = (): Bookmark[] => {
 }
 
 export const addBookmark = async (
-    messageId: string,
+    messageId: string,  // 세션 메시지 ID (북마크 표시용)
     question: string,
     answer: string
 ): Promise<Bookmark | null> => {
@@ -237,14 +242,18 @@ export const addBookmark = async (
 
         if (!res.data.success) return null
 
+        // 백엔드 응답에서 데이터 매핑
         const newBookmark: Bookmark = {
-            id: res.data.bookmark.id,
-            question: res.data.bookmark.question,
-            answer: res.data.bookmark.answer,
-            summary: res.data.bookmark.summary,
-            timestamp: new Date().toISOString()
+            id: messageId,  // 세션에서 사용하는 메시지 ID
+            bookmarkID: res.data.bookmark.bookmarkID,  // DB ID
+            title: res.data.bookmark.title,
+            question: res.data.bookmark.question || question,
+            answer: res.data.bookmark.answer || answer,
+            sources: res.data.bookmark.sources,
+            timestamp: res.data.bookmark.createdAt || new Date().toISOString()
         }
 
+        // localStorage 업데이트
         const bookmarks = getBookmarks()
         bookmarks.unshift(newBookmark)
         localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
@@ -256,21 +265,41 @@ export const addBookmark = async (
     }
 }
 
-export const removeBookmark = (messageId: string): void => {
-    const bookmarks = getBookmarks().filter(b => b.id !== messageId)
-    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
+export const removeBookmark = async (bookmarkId: string): Promise<void> => {
+    try {
+        const bookmarks = getBookmarks()
+        const bookmark = bookmarks.find(b =>
+            b.id === bookmarkId || b.bookmarkID?.toString() === bookmarkId
+        )
 
-    const session = getCurrentSession()
-    if (session) {
-        const msg = session.messages.find(m => m.id === messageId)
-        if (msg) {
-            msg.isBookmarked = false
-            saveSession(session)
+        if (!bookmark?.bookmarkID) {
+            console.warn('Bookmark not found or missing bookmarkID')
+            return
         }
+
+        // 서버에서 삭제
+        await api.delete(`/api/bookmarks/${bookmark.bookmarkID}`)
+
+        // localStorage에서 삭제
+        const updated = bookmarks.filter(b => b.id !== bookmarkId)
+        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updated))
+
+        // 세션에서 북마크 플래그 제거
+        const session = getCurrentSession()
+        if (session) {
+            const msg = session.messages.find(m => m.id === bookmarkId)
+            if (msg) {
+                msg.isBookmarked = false
+                saveSession(session)
+            }
+        }
+    } catch (err) {
+        console.error('Remove Bookmark Error:', err)
+        throw err
     }
 }
 
-export const toggleMessageBookmark = (messageId: string): void => {
+export const toggleMessageBookmark = async (messageId: string): Promise<void> => {
     const session = getCurrentSession()
     if (!session) return
 
@@ -284,9 +313,37 @@ export const toggleMessageBookmark = (messageId: string): void => {
     const userMsg = session.messages[idx - 1]
 
     if (msg.isBookmarked && userMsg) {
-        addBookmark(messageId, userMsg.content, msg.content)
+        await addBookmark(messageId, userMsg.content, msg.content)
     } else {
-        removeBookmark(messageId)
+        await removeBookmark(messageId)
+    }
+}
+
+export const clearAllBookmarks = async (): Promise<void> => {
+    try {
+        const bookmarks = getBookmarks()
+
+        // 서버에서 모두 삭제
+        await Promise.all(
+            bookmarks
+                .filter(b => b.bookmarkID)  // bookmarkID가 있는 것만
+                .map(b => api.delete(`/api/bookmarks/${b.bookmarkID}`))
+        )
+
+        // localStorage 클리어
+        localStorage.removeItem(BOOKMARKS_KEY)
+
+        // 세션 플래그 클리어
+        const session = getCurrentSession()
+        if (session) {
+            session.messages.forEach(m => {
+                if (m.isBookmarked) m.isBookmarked = false
+            })
+            saveSession(session)
+        }
+    } catch (err) {
+        console.error('Clear All Bookmarks Error:', err)
+        throw err
     }
 }
 
@@ -303,21 +360,17 @@ export const extractSchedulesFromConversation = async (
         const res = await api.post("/api/schedule/extract", { question, answer })
 
         if (!res.data.success) return []
-        return res.data.schedules
+
+        // 각 일정에 고유 ID 부여 (백엔드 ID가 없거나 중복될 수 있으므로)
+        const schedules = res.data.schedules.map((schedule: ExtractedSchedule, index: number) => ({
+            ...schedule,
+            id: `schedule_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
+        }))
+
+        return schedules
 
     } catch (e) {
         console.error("Schedule Extract Error:", e)
         return []
     }
-}
-
-export const clearAllBookmarks = (): void => {
-    const session = getCurrentSession()
-    if (session) {
-        session.messages.forEach(m => {
-            if (m.isBookmarked) m.isBookmarked = false
-        })
-        saveSession(session)
-    }
-    localStorage.removeItem(BOOKMARKS_KEY)
 }

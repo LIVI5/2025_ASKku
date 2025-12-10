@@ -13,12 +13,11 @@ export default function ScheduleSelectionModal({ isOpen, isLoading, schedules, o
     const [selectedIds, setSelectedIds] = useState<string[]>([])
 
     useEffect(() => {
-        if (isOpen && schedules.length) {
-            setSelectedIds(schedules.map(s => s.id))
-        } else {
+        // 모달이 열릴 때 선택 초기화 (자동 선택 제거)
+        if (isOpen) {
             setSelectedIds([])
         }
-    }, [isOpen, schedules])
+    }, [isOpen])
 
     if (!isOpen) return null
 
@@ -31,14 +30,58 @@ export default function ScheduleSelectionModal({ isOpen, isLoading, schedules, o
         onConfirm(selected)
     }
 
-    const renderPeriod = (schedule: ExtractedSchedule) => {
-        const sameDay = schedule.startDate === schedule.endDate
-        const dateRange = sameDay ? schedule.startDate : `${schedule.startDate} ~ ${schedule.endDate}`
-        const timeRange = schedule.allDay
-            ? '하루종일'
-            : [schedule.startTime, schedule.endTime].filter(Boolean).join(' - ')
+    // 날짜 포맷 함수
+    const formatDate = (dateStr: string): string => {
+        const date = new Date(dateStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
 
-        return `${dateRange}${timeRange ? ` · ${timeRange}` : ''}`
+    // 시간 포맷 함수
+    const formatTime = (timeStr: string | undefined): string => {
+        if (!timeStr) return ''
+        // HH:mm 형식으로 이미 되어있으면 그대로 반환
+        if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr
+        // ISO 형식이면 시간 부분만 추출
+        const match = timeStr.match(/T(\d{2}:\d{2})/)
+        return match ? match[1] : timeStr
+    }
+
+    const renderPeriod = (schedule: ExtractedSchedule) => {
+        const startDate = formatDate(schedule.startDate)
+        const endDate = formatDate(schedule.endDate)
+        const sameDay = startDate === endDate
+
+        // 시간 정보 추출
+        const startTime = formatTime(schedule.startTime)
+        const endTime = formatTime(schedule.endTime)
+
+        // 하루종일인 경우
+        if (schedule.allDay) {
+            const dateRange = sameDay ? startDate : `${startDate} ~ ${endDate}`
+            return `${dateRange} · 하루종일`
+        }
+
+        // 같은 날인 경우
+        if (sameDay) {
+            if (startTime && endTime) {
+                return `${startDate} ${startTime} - ${endTime}`
+            } else if (startTime) {
+                return `${startDate} ${startTime}`
+            }
+            return startDate
+        }
+
+        // 기간인 경우 (다른 날)
+        if (startTime || endTime) {
+            const start = startTime ? `${startDate} ${startTime}` : startDate
+            const end = endTime ? `${endDate} ${endTime}` : endDate
+            return `${start} ~ ${end}`
+        }
+
+        return `${startDate} ~ ${endDate}`
     }
 
     return (
@@ -76,15 +119,16 @@ export default function ScheduleSelectionModal({ isOpen, isLoading, schedules, o
                     ) : (
                         <div className="space-y-3">
                             {schedules.map(schedule => (
-                                <label
+                                <div
                                     key={schedule.id}
+                                    onClick={() => toggleSelect(schedule.id)}
                                     className="flex items-start gap-3 border border-gray-200 rounded-lg p-4 hover:border-askku-primary/60 transition-colors cursor-pointer"
                                 >
                                     <input
                                         type="checkbox"
                                         checked={selectedIds.includes(schedule.id)}
-                                        onChange={() => toggleSelect(schedule.id)}
-                                        className="mt-1 w-4 h-4 text-askku-primary focus:ring-askku-primary"
+                                        readOnly
+                                        className="mt-1 w-4 h-4 text-askku-primary focus:ring-askku-primary pointer-events-none"
                                     />
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
@@ -100,7 +144,7 @@ export default function ScheduleSelectionModal({ isOpen, isLoading, schedules, o
                                             <p className="text-xs text-gray-500 mt-2 whitespace-pre-wrap">{schedule.description}</p>
                                         )}
                                     </div>
-                                </label>
+                                </div>
                             ))}
                         </div>
                     )}

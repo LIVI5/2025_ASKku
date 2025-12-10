@@ -34,55 +34,64 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                         className={`px-4 py-3 rounded-lg ${isUser
                             ? 'bg-askku-primary text-white'
                             : 'bg-gray-100 text-gray-800'
-                        }`}
+                            }`}
                     >
                         <div className={`text-sm markdown-content ${isUser ? 'text-white' : 'text-gray-800'}`}>
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkBreaks]}
-                                rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                                components={{
-                                    // 리스트 스타일 커스터마이징
-                                    ul: ({ node, ...props }) => (
-                                        <ul className="list-disc list-inside space-y-1 my-2" {...props} />
-                                    ),
-                                    ol: ({ node, ...props }) => (
-                                        <ol className="list-decimal list-inside space-y-1 my-2" {...props} />
-                                    ),
-                                    li: ({ node, ...props }) => (
-                                        <li className="ml-2" {...props} />
-                                    ),
-                                    // 헤딩 스타일
-                                    h1: ({ node, ...props }) => (
-                                        <h1 className="text-xl font-bold mt-4 mb-2" {...props} />
-                                    ),
-                                    h2: ({ node, ...props }) => (
-                                        <h2 className="text-lg font-bold mt-3 mb-2" {...props} />
-                                    ),
-                                    h3: ({ node, ...props }) => (
-                                        <h3 className="text-base font-bold mt-2 mb-1" {...props} />
-                                    ),
-                                    // 코드 블록
-                                    code: ({ node, inline, ...props }: any) => (
-                                        inline 
-                                            ? <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props} />
-                                            : <code className="block bg-gray-200 p-2 rounded my-2 text-sm" {...props} />
-                                    ),
-                                    // 강조
-                                    strong: ({ node, ...props }) => (
-                                        <strong className="font-bold" {...props} />
-                                    ),
-                                    // 링크
-                                    a: ({ node, ...props }) => (
-                                        <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
-                                    ),
-                                    // 문단
-                                    p: ({ node, ...props }) => (
-                                        <p className="my-1" {...props} />
-                                    )
-                                }}
-                            >
-                                {message.content}
-                            </ReactMarkdown>
+                            {/* 로딩 중일 때 로딩 인디케이터 표시 */}
+                            {message.isLoading ? (
+                                <div className="flex gap-1">
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                                </div>
+                            ) : (
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                                    components={{
+                                        // 리스트 스타일 커스터마이징
+                                        ul: ({ node, ...props }) => (
+                                            <ul className="list-disc list-inside space-y-1 my-2" {...props} />
+                                        ),
+                                        ol: ({ node, ...props }) => (
+                                            <ol className="list-decimal list-inside space-y-1 my-2" {...props} />
+                                        ),
+                                        li: ({ node, ...props }) => (
+                                            <li className="ml-2" {...props} />
+                                        ),
+                                        // 헤딩 스타일
+                                        h1: ({ node, ...props }) => (
+                                            <h1 className="text-xl font-bold mt-4 mb-2" {...props} />
+                                        ),
+                                        h2: ({ node, ...props }) => (
+                                            <h2 className="text-lg font-bold mt-3 mb-2" {...props} />
+                                        ),
+                                        h3: ({ node, ...props }) => (
+                                            <h3 className="text-base font-bold mt-2 mb-1" {...props} />
+                                        ),
+                                        // 코드 블록
+                                        code: ({ node, inline, ...props }: any) => (
+                                            inline
+                                                ? <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props} />
+                                                : <code className="block bg-gray-200 p-2 rounded my-2 text-sm" {...props} />
+                                        ),
+                                        // 강조
+                                        strong: ({ node, ...props }) => (
+                                            <strong className="font-bold" {...props} />
+                                        ),
+                                        // 링크
+                                        a: ({ node, ...props }) => (
+                                            <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+                                        ),
+                                        // 문단
+                                        p: ({ node, ...props }) => (
+                                            <p className="my-1" {...props} />
+                                        )
+                                    }}
+                                >
+                                    {message.content}
+                                </ReactMarkdown>
+                            )}
                         </div>
                     </div>
 
