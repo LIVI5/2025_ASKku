@@ -14,6 +14,11 @@ module.exports = (sequelize) => {
         allowNull: false,
         comment: "북마크 소유자",
       },
+      title: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        comment: "대화 제목 (LLM 자동 생성)",
+      },
       question: {
         type: DataTypes.TEXT,
         allowNull: false,
@@ -28,11 +33,6 @@ module.exports = (sequelize) => {
         type: DataTypes.JSON,
         allowNull: true,
         comment: "참고 문서 출처 정보",
-      },
-      summary: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        comment: "핵심 요약 내용 (LLM 요약)",
       },
     },
     {
