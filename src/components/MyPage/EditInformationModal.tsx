@@ -29,11 +29,11 @@ export default function EditInformationModal({ isOpen, onClose, onSave }: EditIn
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">내 정보 관리</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">대화 설정 관리</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="information" className="block text-sm font-medium text-gray-700 mb-1">
-                            내 정보
+                            대화 프롬프트
                         </label>
                         <textarea
                             id="information"
@@ -41,7 +41,8 @@ export default function EditInformationModal({ isOpen, onClose, onSave }: EditIn
                             onChange={(e) => setInformation(e.target.value)}
                             rows={6}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                            placeholder="자신에 대한 정보를 작성해주세요.
+                            placeholder="AI가 대화할 때 참고할 내용을 적어주세요.
+예: 전공/관심사, 설명 난이도, 말투, 규칙 등
 (이 내용은 AI와의 대화에 활용됩니다)"
                         ></textarea>
                     </div>

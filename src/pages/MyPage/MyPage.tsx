@@ -40,7 +40,7 @@ export default function MyPage() {
                     onClick={() => setIsEditInformationModalOpen(true)}
                     className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors"
                 >
-                    내 정보 관리
+                    대화 설정 관리
                 </button>
             </div>
 
