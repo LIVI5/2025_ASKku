@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
-import { getCurrentUser } from '../../services/authService'
 import logoImage from '../../assets/logo.svg'
+import { useUser } from '../../contexts/UserContext'
 
 export default function Sidebar() {
     const location = useLocation()
-    const currentUser = getCurrentUser()
+    const { user, loading } = useUser()
 
     const isActive = (path: string) => location.pathname === path
 
@@ -97,10 +97,10 @@ export default function Sidebar() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-800 truncate">
-                            {currentUser?.name || '사용자'}
+                            {loading ? '로딩 중...' : user?.name || '사용자'}
                         </p>
                         <p className="text-xs text-gray-500 truncate">
-                            {currentUser?.department || '학과'}
+                            {loading ? '로딩 중...' : user?.department || '학과'}
                         </p>
                     </div>
                 </div>
@@ -108,3 +108,4 @@ export default function Sidebar() {
         </aside>
     )
 }
+

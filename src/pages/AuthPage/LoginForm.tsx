@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoImage from '../../assets/logo.svg'
 import { login } from '../../services/authService'
+import { useUser } from '../../contexts/UserContext'
 
 interface LoginFormProps {
     onSwitchToRegister: () => void
@@ -9,6 +10,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     const navigate = useNavigate()
+    const { fetchUser } = useUser()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
@@ -24,6 +26,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             const response = await login(email, password)
 
             if (response.success) {
+                await fetchUser() // Fetch user data after successful login
                 navigate('/home')
             } else {
                 setError(response.message || '로그인에 실패했습니다')
@@ -181,3 +184,4 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </div>
     )
 }
+
