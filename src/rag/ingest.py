@@ -286,6 +286,7 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
                 "delay": 2
             }
         },
+
         # 기숙사 크롤러 추가 시 (예시)
         # {
         #     "board_name": "기숙사",
