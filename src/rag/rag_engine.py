@@ -34,10 +34,11 @@ def format_timetable(timetable: List[Dict]) -> str:
     formatted = []
     for item in timetable:
         if item.get('courseName'):
+            location = f" @ {item['location']}" if item.get('location') else ""
             formatted.append(
                 f"- {item.get('courseName', '과목명 없음')} "
                 f"({item.get('dayOfWeek', '?')}요일 "
-                f"{item.get('startTime', '?')}~{item.get('endTime', '?')})"
+                f"{item.get('startTime', '?')}~{item.get('endTime', '?')}){location}"
             )
     
     return "\n".join(formatted) if formatted else "등록된 수업 없음"
@@ -120,6 +121,25 @@ def create_system_prompt(
         "\n\n[사용자 캘린더 일정]\n등록된 캘린더 일정 없음"
     )
 
+def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
+    """시스템 프롬프트 생성 - DB에서 가져온 사용자 정보 활용"""
+    
+    # 기본 정보
+    base_info = f"""[사용자 정보]
+- 이름: {user_info.get('name', '미제공')}
+- 캠퍼스: {user_info.get('campus', '미제공')}
+- 학과: {user_info.get('department', '미제공')}
+- 학년: {user_info.get('grade', '미제공')}학년
+- 학기: {user_info.get('semester', '미제공')}학기
+- 입학년도: {user_info.get('admissionYear', '미제공')}년"""
+    
+    # 추가 정보가 있으면 포함
+    if user_info.get('additional_info'):
+        base_info += f"\n- 추가정보: {user_info['additional_info']}"
+    
+    # 시간표 정보
+    timetable_info = f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
+    
     system_prompt = f"""너는 성균관대학교 학생을 돕는 AI 어시스턴트야.
 
 {user_info_block}
@@ -148,7 +168,10 @@ def create_system_prompt(
    - 중요한 날짜, 기한은 **볼드**로 강조
    - 제목은 ## 또는 ### 사용
 5. 여러 항목이 있으면 리스트로 정리
-6. 사용자 정보(학과, 학년, 시간표)를 고려한 맞춤형 답변 제공
+6. 사용자 정보(캠퍼스, 학과, 학년, 학기, 시간표)를 고려한 맞춤형 답변 제공
+   - 예: 자연과학캠퍼스 학생이면 자연과학캠퍼스 관련 정보 우선 제공
+   - 학년/학기에 따른 졸업요건, 수강신청 정보 맞춤 제공
+7. 시간표를 고려하여 일정 충돌 여부를 알려줄 수 있음
 
 [언어]
 사용자가 한국어로 물으면 한국어로, 영어로 물으면 영어로 답변
@@ -168,6 +191,12 @@ async def generate_rag_response_stream(
     """
     스트리밍 RAG 응답 생성
     
+    Args:
+        question: 사용자 질문
+        history: 대화 히스토리
+        user_info: DB에서 가져온 사용자 정보 (name, campus, department, grade, semester, admissionYear, additional_info)
+        timetable: DB에서 가져온 시간표 정보
+    
     Yields:
         - {"type": "sources", "sources": [...]}  # 출처 정보 (첫 번째)
         - {"type": "content", "content": "토큰"} # 스트리밍 컨텐츠
@@ -177,7 +206,7 @@ async def generate_rag_response_stream(
     
     try:
         # LLM 초기화 (streaming=True 필수)
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.1, streaming=True)
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, streaming=True)
         
         # 1. 문서 검색
         retriever = get_retriever(score_threshold=0.5)
@@ -193,13 +222,9 @@ async def generate_rag_response_stream(
         # 3. Context 생성
         context_text = format_docs_with_metadata(docs)
         
-        # 4. 시스템 프롬프트 생성
-        system_msg = create_system_prompt(
-            user_info=user_info,
-            timetable=timetable,
-            calendar=calendar or []
-        )
-            
+        # 4. 시스템 프롬프트 생성 (DB 정보 활용)
+        system_msg = create_system_prompt(user_info, timetable)
+        
         # 5. 메시지 구성
         messages = [SystemMessage(content=system_msg)]
         
@@ -241,67 +266,9 @@ async def generate_rag_response_stream(
         }
 
 
-def generate_rag_response(
-    question: str,
-    history: List[Dict],
-    user_info: Dict,
-    timetable: List[Dict]
-) -> Dict:
-    """
-    기존 non-streaming 버전 (호환성 유지)
-    """
-    
-    try:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.2, streaming=True)
-        
-        retriever = get_retriever(score_threshold=0.5)
-        docs = retriever.invoke(question)
-        
-        context_text = format_docs_with_metadata(docs)
-        system_msg = create_system_prompt(user_info, timetable)
-        
-        messages = [SystemMessage(content=system_msg)]
-        
-        for msg in history:
-            if msg["role"] == "user":
-                messages.append(HumanMessage(content=msg["content"]))
-            else:
-                messages.append(AIMessage(content=msg["content"]))
-        
-        current_msg = f"""[참고 문서]
-{context_text}
-
-[질문]
-{question}
-
-위 참고 문서와 사용자 정보를 바탕으로 답변해줘."""
-        
-        messages.append(HumanMessage(content=current_msg))
-        
-        response = llm.invoke(messages)
-        sources = extract_sources(docs)
-        
-        return {
-            "type": "answer",
-            "reply": response.content,
-            "sources": sources,
-            "info_request": None
-        }
-        
-    except Exception as e:
-        print(f"RAG Error: {e}")
-        return {
-            "type": "error",
-            "reply": "답변 생성 중 오류가 발생했습니다. 다시 시도해주세요.",
-            "sources": [],
-            "info_request": None,
-            "error": str(e)
-        }
-
-
 def translate_response(text: str, target_language: str = "en") -> Dict:
     try:
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
         
         lang_name = "영어" if target_language == "en" else "한국어"
         
@@ -332,11 +299,10 @@ def translate_response(text: str, target_language: str = "en") -> Dict:
             "error": f"번역 중 오류가 발생했습니다: {str(e)}"
         }
 
+
 def generate_bookmark_title(question: str, answer: str) -> str:
     """
     질문과 답변을 바탕으로 북마크 제목 생성
-    ChatGPT 스타일 - 짧고 명확한 제목
-    
     답변을 참고하여 대화 맥락을 파악하고 완전한 제목 생성
     """
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
@@ -381,57 +347,14 @@ def generate_bookmark_title(question: str, answer: str) -> str:
 
     try:
         title = llm.invoke(prompt).content.strip()
-        # 따옴표 제거
         title = title.strip('"\'')
-        # 최대 길이 제한
         if len(title) > 50:
             title = title[:47] + "..."
         return title
     except Exception as e:
         print(f"Title generation error: {e}")
-        # 실패 시 질문의 첫 30자 사용
         return question[:30] + ("..." if len(question) > 30 else "")
 
-
-''' 요약 기능 - 현재 사용 안 함
-def summarize_bookmark(question, answer):
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
-
-    prompt = f"""
-다음 내용을 아래 마크다운 형식에 따라 요약해줘.
-
-## 내용
-- 핵심 항목 3~7개
-- 문장형 금지 (예: ~하다, ~할 수 있다, 좋다 등)
-- 불필요한 말 축약, 핵심 표현만
-- 중복 의미 금지
-- 설명 문장 생성 금지
-- 한 줄당 하나의 항목
-- 일정이 있다면 일정도 반드시 포함
----
-
-### 출력 형식(이 형식을 그대로 사용할 것):
-
-**내용:**
-- 항목1
-- 항목1 일정
-
-**내용:**
-- 항목2
-- 항목2 일정
-
----
-
-### 요약 대상
-
-**질문:**  
-{question}
-**답변:**  
-{answer}
-"""
-
-    return llm.invoke(prompt).content.strip()
-'''
 
 def extract_schedule_from_dialog(question: str, answer: str):
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)

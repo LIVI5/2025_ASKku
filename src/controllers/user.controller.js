@@ -5,6 +5,7 @@ const { User, Timetable } = require("../models");
 // ------------------ REGISTER ------------------
 const register = async (req, res) => {
   try {
+<<<<<<< HEAD
     const {
       email,
       password,
@@ -16,6 +17,9 @@ const register = async (req, res) => {
       semester,      // 추가
       additional_info
     } = req.body;
+=======
+    const { email, password, name, department, grade, additional_info, campus, admissionYear, semester} = req.body;
+>>>>>>> c7d640b (fix: 유저 정보 들고와서 프롬프트 생성)
 
     // 필수값 검증
     if (!email || !password) {
@@ -44,11 +48,18 @@ const register = async (req, res) => {
       password_hash: hash,
       name: name || null,
       department: department || null,
+<<<<<<< HEAD
       campus: campus || null,           // 추가
       admissionYear: admissionYear || null, // 추가
       grade: grade || null,
       semester: semester || null,       // 추가
+=======
+      grade,
+>>>>>>> c7d640b (fix: 유저 정보 들고와서 프롬프트 생성)
       additional_info: additional_info || null,
+      campus: campus || null,              // 추가
+      admissionYear: admissionYear || null, // 추가
+      semester: semester || null            // 추가
     });
 
 
