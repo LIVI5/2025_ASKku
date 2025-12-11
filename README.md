@@ -129,6 +129,15 @@ mkdir -p pdf_doc/processed
 
 ### 3. 정기 업데이트
 
+#### cron을 통한 크롤러 자동 실행
+
+실행권한 추가:
+chmod +x run_ingest.sh
+예시 (매일 새벽 3시 실행한다면)
+crontab -e 에 아래 줄 추가:
+0 3 * * * /bin/bash "run_ingest.sh 절대경로 (예시:/path/to/dev-ai-search-backend/src/rag/run_ingest.sh")
+이후 ctrl+O, Enter, ctrl+X로 파일 저장하고 나가기
+
 ```bash
 # 매일 또는 매주 실행하여 새 공지사항 수집
 python ingest.py
