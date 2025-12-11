@@ -3,7 +3,7 @@ import { useState } from 'react'
 import logoImage from '../../assets/logo.svg'
 import { useUser } from '../../contexts/UserContext'
 import PasswordVerificationModal from '../Modals/PasswordVerificationModal'
-import EditInformationModal from '../MyPage/EditInformationModal'
+import EditPersonalInfoModal from '../MyPage/EditPersonalInfoModal'
 
 export default function Sidebar() {
     const location = useLocation()
@@ -147,7 +147,7 @@ export default function Sidebar() {
                 onSuccess={handlePasswordVerificationSuccess}
             />
 
-            <EditInformationModal
+            <EditPersonalInfoModal
                 isOpen={showEditInformationModal}
                 onClose={handleCloseEditInformationModal}
             />
