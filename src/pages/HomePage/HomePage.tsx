@@ -84,15 +84,7 @@ export default function HomePage() {
                     ))}
                 </div>
 
-                {/* More Button */}
-                <div className="text-center">
-                    <button
-                        onClick={() => navigate('/notices')}
-                        className="px-8 py-3 border-2 border-askku-primary text-askku-primary rounded-lg font-medium hover:bg-askku-primary hover:text-white transition-colors"
-                    >
-                        더 많은 공지사항 보기
-                    </button>
-                </div>
+                
             </div>
         </div>
     )

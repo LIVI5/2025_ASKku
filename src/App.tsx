@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AuthPage from './pages/AuthPage/AuthPage'
 import HomePage from './pages/HomePage/HomePage'
-import NoticePage from './pages/NoticePage/NoticePage'
 import ChatPage from './pages/ChatPage/ChatPage'
 import MyPage from './pages/MyPage/MyPage'
 import MainLayout from './components/Layout/MainLayout'
@@ -27,16 +26,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
-                    <Route
-                        path="/notices"
-                        element={
-                            <ProtectedRoute>
-                                <MainLayout>
-                                    <NoticePage />
-                                </MainLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+                    
                     <Route
                         path="/chat"
                         element={
