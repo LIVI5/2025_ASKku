@@ -97,39 +97,30 @@ export default function NoticeCard({ notice }: NoticeCardProps) {
             />
 
             {/* Content */}
-            <div className="flex items-start gap-3 mb-3">
+            <div className="flex items-start gap-3">
                 {/* 아이콘 */}
                 <span className="text-3xl flex-shrink-0 transform group-hover:scale-110 transition-transform duration-300">
                     {config.icon}
                 </span>
 
-                {/* 제목 및 출처 */}
+                {/* 제목, 출처, 날짜 */}
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-gray-800 text-base leading-tight line-clamp-2 mb-2">
                         {notice.title}
                     </h3>
-                    <span className={`text-xs font-semibold ${config.text} inline-block px-2 py-1 rounded-full ${config.bg}`}>
-                        {notice.source}
-                    </span>
+                    <div className="flex justify-between items-center mt-2 text-xs">
+                        <span className={`font-semibold ${config.text} inline-block px-2 py-1 rounded-full ${config.bg}`}>
+                            {notice.source}
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-500">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-60">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+                                <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            {notice.date}
+                        </span>
+                    </div>
                 </div>
-            </div>
-
-            {/* 날짜 */}
-            <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                <span className="flex items-center gap-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-60">
-                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-                        <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    {notice.date}
-                </span>
-                <span className="flex items-center gap-1 opacity-60">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" />
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    {notice.views}
-                </span>
             </div>
         </div>
     )
