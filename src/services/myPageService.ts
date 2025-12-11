@@ -1,6 +1,7 @@
+import api from '../api/axiosInstance'
 import { Schedule, Timetable, TimetableItem } from '../types'
 import { dummyTimetables } from '../data/dummyData'
-import { getCurrentUser } from '../services/authService'
+import { getCurrentUser } from '../services/authService' // Keep this for other functionalities if needed
 
 const SCHEDULES_KEY = 'askku_schedules'
 const TIMETABLES_KEY = 'askku_timetables'
@@ -204,19 +205,47 @@ export const deleteTimetableItem = (id: string): void => {
 }
 
 // User Information Management
-const getUserInformationKey = (userId: string): string => `askku_user_info_${userId}`
+export const saveUserInformation = async (information: string): Promise<boolean> => {
+    console.log('Attempting to save user additional information...');
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('saveUserInformation: No authentication token found.');
+            return false;
+        }
+        console.log('saveUserInformation: Token found:', token);
 
-export const saveUserInformation = (information: string): void => {
-    const currentUser = getCurrentUser()
-    if (currentUser) {
-        localStorage.setItem(getUserInformationKey(currentUser.id), information)
+        const payload = { additionalInfo: information };
+        console.log('saveUserInformation: Payload:', payload);
+
+        await api.put('/api/users/additional-info',
+            payload,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('saveUserInformation: Additional information saved successfully.');
+        return true;
+    } catch (error: any) {
+        console.error('saveUserInformation: Failed to save user additional information:', error);
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error('saveUserInformation: Error data:', JSON.stringify(error.response.data));
+            console.error('saveUserInformation: Error status:', error.response.status);
+            console.error('saveUserInformation: Error headers:', error.response.headers);
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('saveUserInformation: No response received:', error.request);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error('saveUserInformation: Error message:', error.message);
+        }
+        return false;
     }
 }
 
+// This function will likely become obsolete as additional_info will be fetched via UserContext's user object.
 export const getUserInformation = (): string | null => {
-    const currentUser = getCurrentUser()
-    if (currentUser) {
-        return localStorage.getItem(getUserInformationKey(currentUser.id))
-    }
-    return null
+    // For now, keep it as is, but it won't be used by EditInformationModal directly.
+    // The user context will provide the additional_info.
+    return null;
 }
