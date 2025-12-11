@@ -3,7 +3,8 @@ import CalendarView from '../../components/MyPage/CalendarView'
 import TimetableView from '../../components/MyPage/TimetableView'
 import AddScheduleModal from '../../components/MyPage/AddScheduleModal'
 import AddTimetableModal from '../../components/MyPage/AddTimetableModal'
-import EditInformationModal from '../../components/MyPage/EditInformationModal'
+import EditChatSettingsModal from '../../components/MyPage/EditChatSettingsModal'
+import EditPersonalInfoModal from '../../components/MyPage/EditPersonalInfoModal' // Import the new PersonalInfo modal
 import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
 import { Schedule } from '../../types'
 
@@ -11,7 +12,7 @@ export default function MyPage() {
     const [view, setView] = useState<'calendar' | 'timetable'>('calendar')
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
-    const [isEditInformationModalOpen, setIsEditInformationModalOpen] = useState(false)
+    const [isEditChatSettingsModalOpen, setIsEditChatSettingsModalOpen] = useState(false) // Renamed state
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
     const [refreshKey, setRefreshKey] = useState(0) // Force re-render on data change
@@ -37,7 +38,7 @@ export default function MyPage() {
             <div className="bg-white border-b border-gray-200 h-[72px] px-6 flex items-center justify-between flex-shrink-0">
                 <h1 className="text-xl font-bold text-gray-800">마이페이지</h1>
                 <button
-                    onClick={() => setIsEditInformationModalOpen(true)}
+                    onClick={() => setIsEditChatSettingsModalOpen(true)} // Updated onClick
                     className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors"
                 >
                     대화 설정 관리
@@ -99,9 +100,9 @@ export default function MyPage() {
                 onClose={() => setIsTimetableModalOpen(false)}
                 onSuccess={handleRefresh}
             />
-            <EditInformationModal
-                isOpen={isEditInformationModalOpen}
-                onClose={() => setIsEditInformationModalOpen(false)}
+            <EditChatSettingsModal // Changed modal component
+                isOpen={isEditChatSettingsModalOpen} // Changed state variable
+                onClose={() => setIsEditChatSettingsModalOpen(false)} // Changed state variable
                 onSave={handleRefresh}
             />
             <ScheduleDetailModal
