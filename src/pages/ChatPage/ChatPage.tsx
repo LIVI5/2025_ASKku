@@ -169,9 +169,7 @@ export default function ChatPage() {
     const handleTranslate = async (content: string) => {
         const request = `Translate the following text to English:\n\n${content}`
 
-        const userMessage = addMessage(request, 'user', 'text')
-        setMessages(prev => [...prev, userMessage])
-
+        // 1. 로딩 상태의 빈 AI 메시지 생성 (번역 결과를 위함)
         const aiMessage = addMessage('', 'assistant', 'markdown', true)  // isLoading=true
         setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
@@ -181,10 +179,12 @@ export default function ChatPage() {
         try {
             await generateAIResponseStream(
                 request,
+                // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
                     updateMessage(aiMessage.id, accumulatedText, false)  // isLoading=false
 
+                    // UI 업데이트 (로딩 해제 + 내용 업데이트)
                     setMessages(prev =>
                         prev.map(m =>
                             m.id === aiMessage.id
@@ -193,10 +193,9 @@ export default function ChatPage() {
                         )
                     )
                 },
-                // onSources: 출처 정보 저장
+                // onSources: 출처 정보 저장 (번역에는 출처가 없을 수 있지만 구조 유지)
                 (sources) => {
-                    console.log('Sources:', sources)
-                    // UI 업데이트
+                    console.log('Sources for translation:', sources)
                     setMessages(prev =>
                         prev.map(m =>
                             m.id === aiMessage.id
@@ -204,19 +203,46 @@ export default function ChatPage() {
                                 : m
                         )
                     )
-                    // localStorage에 저장
                     updateMessageSources(aiMessage.id, sources)
                 },
+                // onComplete: 완료 시
                 () => {
+                    console.log('Translation streaming completed')
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, isLoading: false }
+                                : m
+                        )
+                    )
                     setIsLoading(false)
                 },
+                // onError: 에러 시
                 (error) => {
-                    console.error('Translation error:', error)
+                    console.error('Stream error during translation:', error)
+                    const errorMessage = '❌ 번역 중 오류가 발생했습니다.'
+                    updateMessage(aiMessage.id, errorMessage)
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, content: errorMessage, isLoading: false }
+                                : m
+                        )
+                    )
                     setIsLoading(false)
                 }
             )
         } catch (error) {
-            console.error('Error generating translation:', error)
+            console.error('Error in handleTranslate:', error)
+            const errorMessage = '❌ 번역 요청 중 오류가 발생했습니다.'
+            updateMessage(aiMessage.id, errorMessage)
+            setMessages(prev =>
+                prev.map(m =>
+                    m.id === aiMessage.id
+                        ? { ...m, content: errorMessage, isLoading: false }
+                        : m
+                )
+            )
             setIsLoading(false)
         }
     }

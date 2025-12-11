@@ -23,6 +23,13 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
         minute: '2-digit'
     })
 
+    // 객체 내용 전체를 비교하여 중복된 출처를 제거 (더 안전한 방식)
+    const uniqueSources =
+        message.sources?.filter(
+            (source, index, self) =>
+                index === self.findIndex(s => JSON.stringify(s) === JSON.stringify(source))
+        ) || []
+
     return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
             <div className={`flex gap-3 max-w-[70%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -98,11 +105,11 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                         </div>
 
                         {/* 출처 표시 섹션 */}
-                        {!isUser && message.sources && message.sources.length > 0 && showSources && (
+                        {!isUser && uniqueSources.length > 0 && showSources && (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                 <p className="text-xs font-semibold text-gray-600 mb-2">📚 참고 문서:</p>
                                 <div className="space-y-2">
-                                    {message.sources.map((source, idx) => (
+                                    {uniqueSources.map((source, idx) => (
                                         <div key={idx} className="text-xs bg-white p-2 rounded border border-gray-200">
                                             <p className="font-medium text-gray-700 mb-1">
                                                 {source.title || `문서 ${idx + 1}`}
@@ -178,7 +185,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                 번역
                             </button>
                         )}
-                        {!isUser && message.sources && message.sources.length > 0 && (
+                        {!isUser && uniqueSources.length > 0 && (
                             <button
                                 onClick={() => setShowSources(!showSources)}
                                 className={`text-xs px-2 py-0.5 rounded transition-colors flex items-center gap-1 ${showSources
@@ -194,7 +201,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                     <line x1="16" y1="17" x2="8" y2="17" />
                                     <polyline points="10 9 9 9 8 9" />
                                 </svg>
-                                출처 ({message.sources.length})
+                                출처 ({uniqueSources.length})
                             </button>
                         )}
                     </div>
