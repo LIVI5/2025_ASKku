@@ -54,13 +54,13 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                     components={{
                                         // 리스트 스타일 커스터마이징
                                         ul: ({ node, ...props }) => (
-                                            <ul className="list-disc list-inside space-y-1 my-2" {...props} />
+                                            <ul className="list-disc list-outside space-y-1 my-2 pl-5" {...props} />
                                         ),
                                         ol: ({ node, ...props }) => (
-                                            <ol className="list-decimal list-inside space-y-1 my-2" {...props} />
+                                            <ol className="list-decimal list-outside space-y-1 my-2 pl-5" {...props} />
                                         ),
                                         li: ({ node, ...props }) => (
-                                            <li className="ml-2" {...props} />
+                                            <li {...props} />
                                         ),
                                         // 헤딩 스타일
                                         h1: ({ node, ...props }) => (
