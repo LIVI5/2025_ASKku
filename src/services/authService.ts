@@ -71,7 +71,7 @@ export const logout = (): void => {
     localStorage.removeItem('token');
 };
 
-export const getCurrentUser = async (): Promise<User | null> => {
+export const getUserInfo = async (): Promise<User | null> => {
     const token = localStorage.getItem('token');
     if (!token) return null;
 

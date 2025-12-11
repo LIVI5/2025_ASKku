@@ -1,80 +1,359 @@
-import { useState, useEffect } from 'react'
-import { saveUserInformation } from '../../services/myPageService'
+import React, { useState, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import { useUser } from '../../contexts/UserContext'
+import { getUserInfo } from '../../services/authService' // Assuming this service exists or will be created
 
 interface EditInformationModalProps {
     isOpen: boolean
     onClose: () => void
-    onSave: () => void
 }
 
-export default function EditInformationModal({ isOpen, onClose, onSave }: EditInformationModalProps) {
+export default function EditInformationModal({ isOpen, onClose }: EditInformationModalProps) {
     const { user, fetchUser } = useUser()
-    const [information, setInformation] = useState('')
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        admissionYear: '',
+        currentGrade: 1,
+        currentSemester: 1,
+        department: '',
+        campus: '',
+        password: '',
+        confirmPassword: '',
+    })
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [loading, setLoading] = useState(true)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+    // Data from RegisterForm
+    const departments = [
+        '소프트웨어학과',
+        '컴퓨터공학과',
+        '전자전기공학부',
+        '글로벌경제학과',
+        '글로벌경영학과',
+        '기타',
+    ]
+
+    const campuses = [
+        '인문사회캠퍼스',
+        '자연과학캠퍼스',
+    ]
+
+    const currentYear = new Date().getFullYear()
+    const admissionYears = Array.from({ length: 11 }, (_, i) => currentYear - i)
 
     useEffect(() => {
-        if (isOpen) {
-            setInformation(user?.additional_info || '')
-            console.log('EditInformationModal: Initial information from user context:', user?.additional_info);
+        const fetchUserData = async () => {
+            if (isOpen) {
+                setLoading(true)
+                try {
+                    // Use a more specific API call for user info if available, otherwise use `user` from context
+                    // For now, let's assume `getUserInfo` is available in authService.ts and fetches more detailed user data
+                    // If not, we'll have to rely on `user` from context and fill in defaults.
+                    const userInfo = await getUserInfo(); // This would call GET /me
+                    if (userInfo) {
+                        setFormData({
+                            name: userInfo.name || '',
+                            email: userInfo.email || '',
+                            admissionYear: userInfo.admissionYear?.toString() || '',
+                            currentGrade: userInfo.grade || 1,
+                            currentSemester: userInfo.semester || 1, // Assuming 'semester' is available or default to 1
+                            department: userInfo.department || '',
+                            campus: userInfo.campus || '', // Assuming 'campus' is available or default to empty
+                            password: '',
+                            confirmPassword: '',
+                        })
+                    } else if (user) { // Fallback to user context if API fails or is not detailed
+                        setFormData({
+                            name: user.name || '',
+                            email: user.email || '',
+                            admissionYear: '', // Default as not available from context
+                            currentGrade: user.grade || 1,
+                            currentSemester: 1, // Default
+                            department: user.department || '',
+                            campus: '', // Default
+                            password: '',
+                            confirmPassword: '',
+                        })
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch user info for editing:', error)
+                    // Fallback to user context data
+                    if (user) {
+                        setFormData({
+                            name: user.name || '',
+                            email: user.email || '',
+                            admissionYear: '', // Default as not available from context
+                            currentGrade: user.grade || 1,
+                            currentSemester: 1, // Default
+                            department: user.department || '',
+                            campus: '', // Default
+                            password: '',
+                            confirmPassword: '',
+                        })
+                    }
+                } finally {
+                    setLoading(false)
+                }
+            }
         }
-    }, [isOpen, user?.additional_info])
+        fetchUserData()
+    }, [isOpen, user, fetchUser])
 
     if (!isOpen) return null
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        console.log('EditInformationModal: Submitting information:', information);
-        const success = await saveUserInformation(information)
-        console.log('EditInformationModal: saveUserInformation success:', success);
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
+        const { name, value, type } = e.target
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === 'number' ? Number(value) : value,
+        }))
 
-        if (success) {
-            await fetchUser() // Re-fetch user data to update the context
-            console.log('EditInformationModal: User data re-fetched.');
-            onSave()
-            onClose()
-        } else {
-            // Handle error, e.g., show a toast notification
-            console.error('EditInformationModal: Failed to save additional information.');
+        if (errors[name]) {
+            setErrors((prev) => ({ ...prev, [name]: '' }))
         }
     }
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">대화 설정 관리</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="information" className="block text-sm font-medium text-gray-700 mb-1">
-                            대화 프롬프트
-                        </label>
-                        <textarea
-                            id="information"
-                            value={information}
-                            onChange={(e) => setInformation(e.target.value)}
-                            rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
-                            placeholder="AI가 대화할 때 참고할 내용을 적어주세요.
-예: 전공/관심사, 설명 난이도, 말투, 규칙 등
-(이 내용은 AI와의 대화에 활용됩니다)"
-                        ></textarea>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            취소
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
-                        >
-                            저장
-                        </button>
-                    </div>
-                </form>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        // As per requirement 4, there is no API to save, so just close the modal.
+        // In a real scenario, validation and an API call would go here.
+        // For demonstration purposes, let's add a basic password validation if user typed in new passwords
+        if (formData.password || formData.confirmPassword) {
+            const newErrors: Record<string, string> = {}
+            if (formData.password.length > 0 && formData.password.length < 8) {
+                newErrors.password = '비밀번호는 8자 이상이어야 합니다'
+            } else if (formData.password.length > 0 && !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+                newErrors.password = '비밀번호는 특수문자를 포함해야 합니다'
+            }
+            if (formData.password !== formData.confirmPassword) {
+                newErrors.confirmPassword = '새 비밀번호가 일치하지 않습니다'
+            }
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors)
+                return
+            }
+        }
+
+        onClose()
+    }
+
+    return ReactDOM.createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-auto overflow-y-auto max-h-[90vh]">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">개인 정보 수정</h2>
+
+                {loading ? (
+                    <div className="text-center py-8">로딩 중...</div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* 이름 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-800 mb-1.5">이름</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder="이름"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-sm"
+                            />
+                        </div>
+
+                        {/* 이메일 주소 (수정 불가) */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-800 mb-1.5">
+                                이메일 주소
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                disabled
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed text-sm"
+                            />
+                        </div>
+
+                        {/* 입학년도, 학년, 학기 */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-800 mb-1.5">입학년도</label>
+                                <select
+                                    name="admissionYear"
+                                    value={formData.admissionYear}
+                                    onChange={handleChange}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm ${errors.admissionYear ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                >
+                                    <option value="">선택</option>
+                                    {admissionYears.map((year) => (
+                                        <option key={year} value={year.toString()}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.admissionYear && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.admissionYear}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-800 mb-1.5">현재 학년</label>
+                                <select
+                                    name="currentGrade"
+                                    value={formData.currentGrade}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                                >
+                                    {[1, 2, 3, 4, 5, 6, 7].map((grade) => (
+                                        <option key={grade} value={grade}>
+                                            {grade}학년
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-800 mb-1.5">학기</label>
+                                <select
+                                    name="currentSemester"
+                                    value={formData.currentSemester}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                                >
+                                    <option value={1}>1학기</option>
+                                    <option value={2}>2학기</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* 캠퍼스, 학과 */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-800 mb-1.5">캠퍼스</label>
+                                <select
+                                    name="campus"
+                                    value={formData.campus}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                                >
+                                    <option value="">선택</option>
+                                    {campuses.map((campus) => (
+                                        <option key={campus} value={campus}>
+                                            {campus}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-800 mb-1.5">학과</label>
+                                <select
+                                    name="department"
+                                    value={formData.department}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
+                                >
+                                    <option value="">선택</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept} value={dept}>
+                                            {dept}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* 비밀번호 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-800 mb-1.5">
+                                새 비밀번호 (선택)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-sm ${errors.password ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                        <path
+                                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                        />
+                                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                            )}
+                            <p className="text-gray-500 text-xs mt-1">8자 이상, 특수문자 포함</p>
+                        </div>
+
+                        {/* 비밀번호 확인 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-800 mb-1.5">
+                                새 비밀번호 확인
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    name="confirmPassword"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent text-sm ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                        <path
+                                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                        />
+                                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {errors.confirmPassword && (
+                                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
+                            >
+                                                                저장
+                                                        </button>                        </div>
+                    </form>
+                )}
             </div>
-        </div>
+        </div>,
+        document.body,
     )
 }

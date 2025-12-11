@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import { User } from '../types';
-import { getCurrentUser } from '../services/authService';
+import { getUserInfo } from '../services/authService';
 
 interface UserContextType {
     user: User | null;
@@ -22,7 +22,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const fetchUser = useCallback(async () => {
         setLoading(true);
         try {
-            const userData = await getCurrentUser();
+            const userData = await getUserInfo();
             setUser(userData);
         } catch (error) {
             console.error("Failed to fetch user:", error);
