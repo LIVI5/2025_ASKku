@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { dummyNotices } from '../../data/dummyData'
+import { getLatestNotices } from '../../services/noticeService'
 import NoticeCard from '../../components/NoticeCard'
+import { Notice } from '../../types'
 
 export default function HomePage() {
     const navigate = useNavigate()
@@ -9,7 +10,15 @@ export default function HomePage() {
     const categories = ['수강신청', '학사일정', '장학금', '기숙사']
 
     // 최신 공지사항 6개
-    const latestNotices = dummyNotices.slice(0, 6)
+    const [latestNotices, setLatestNotices] = useState<Notice[]>([])
+
+    useEffect(() => {
+        const fetchNotices = async () => {
+            const notices = await getLatestNotices();
+            setLatestNotices(notices.slice(0, 6));
+        };
+        fetchNotices();
+    }, []);
 
     // 빠른 채팅 입력
     const [quickMessage, setQuickMessage] = useState('')
