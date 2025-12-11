@@ -9,24 +9,27 @@ export interface Notice {
 }
 
 export interface User {
-    id: string
-    name: string
+    userID: string
     email: string
-    admissionYear: string
-    currentGrade: number
-    currentSemester: number
+    name: string
+    password_hash: string
+    campus: string
+    admissionYear: number
+    semester: number
+    grade: number
     department: string
     createdAt: string
     introduction?: string
+    additional_info?: string
 }
 
 export interface RegisterData {
     lastName: string
     firstName: string
     email: string
-    admissionYear: string
-    currentGrade: number
-    currentSemester: number
+    admissionYear: number
+    grade: number
+    semester: number
     department: string
     campus: string
     password: string
@@ -47,6 +50,7 @@ export type ChatMessage = {
     isBookmarked: boolean;
     format: 'text' | 'markdown' | 'sources';
     isLoading?: boolean; // 스트리밍 로딩 중 표시
+    sources?: any[]; // RAG 출처 정보
 };
 
 export interface Bookmark {

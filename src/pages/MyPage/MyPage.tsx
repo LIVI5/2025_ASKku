@@ -4,7 +4,6 @@ import TimetableView from '../../components/MyPage/TimetableView'
 import AddScheduleModal from '../../components/MyPage/AddScheduleModal'
 import AddTimetableModal from '../../components/MyPage/AddTimetableModal'
 import EditChatSettingsModal from '../../components/MyPage/EditChatSettingsModal'
-import EditPersonalInfoModal from '../../components/MyPage/EditPersonalInfoModal' // Import the new PersonalInfo modal
 import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
 import { Schedule } from '../../types'
 

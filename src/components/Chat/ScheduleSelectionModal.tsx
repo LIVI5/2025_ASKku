@@ -39,48 +39,17 @@ export default function ScheduleSelectionModal({ isOpen, isLoading, schedules, o
         return `${year}-${month}-${day}`
     }
 
-    // 시간 포맷 함수
-    const formatTime = (timeStr: string | undefined): string => {
-        if (!timeStr) return ''
-        // HH:mm 형식으로 이미 되어있으면 그대로 반환
-        if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr
-        // ISO 형식이면 시간 부분만 추출
-        const match = timeStr.match(/T(\d{2}:\d{2})/)
-        return match ? match[1] : timeStr
-    }
-
     const renderPeriod = (schedule: ExtractedSchedule) => {
         const startDate = formatDate(schedule.startDate)
         const endDate = formatDate(schedule.endDate)
         const sameDay = startDate === endDate
 
-        // 시간 정보 추출
-        const startTime = formatTime(schedule.startTime)
-        const endTime = formatTime(schedule.endTime)
-
-        // 하루종일인 경우
-        if (schedule.allDay) {
-            const dateRange = sameDay ? startDate : `${startDate} ~ ${endDate}`
-            return `${dateRange} · 하루종일`
-        }
-
         // 같은 날인 경우
         if (sameDay) {
-            if (startTime && endTime) {
-                return `${startDate} ${startTime} - ${endTime}`
-            } else if (startTime) {
-                return `${startDate} ${startTime}`
-            }
             return startDate
         }
 
         // 기간인 경우 (다른 날)
-        if (startTime || endTime) {
-            const start = startTime ? `${startDate} ${startTime}` : startDate
-            const end = endTime ? `${endDate} ${endTime}` : endDate
-            return `${start} ~ ${end}`
-        }
-
         return `${startDate} ~ ${endDate}`
     }
 

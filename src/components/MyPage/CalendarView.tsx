@@ -8,8 +8,9 @@ interface CalendarViewProps {
 }
 
 const isDateInRange = (date: string, schedule: Schedule) => {
-    const start = schedule.startDate || schedule.date || schedule.endDate || date
-    const end = schedule.endDate || schedule.startDate || schedule.date || date
+    // 날짜 부분만 추출 (YYYY-MM-DD) - 시간 정보 제거
+    const start = (schedule.startDate || schedule.date || schedule.endDate || date).substring(0, 10)
+    const end = (schedule.endDate || schedule.startDate || schedule.date || date).substring(0, 10)
     return date >= start && date <= end
 }
 
@@ -136,7 +137,7 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
                                 className={`inline-flex items-center justify-center rounded-md px-3 py-1.5 font-medium transition-colors ${selectedType === type
                                     ? 'bg-white text-askku-primary shadow'
                                     : 'hover:bg-gray-100 hover:text-gray-900'
-                                }`}
+                                    }`}
                             >
                                 {type === 'all' ? '전체' : type === 'personal' ? '개인' : type === 'academic' ? '학사' : '과목'}
                             </button>
