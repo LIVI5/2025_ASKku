@@ -77,6 +77,18 @@ export const updateMessage = (messageId: string, content: string, isLoading?: bo
     }
 }
 
+// 메시지 출처 업데이트
+export const updateMessageSources = (messageId: string, sources: any[]): void => {
+    const session = getCurrentSession()
+    if (!session) return
+
+    const message = session.messages.find(m => m.id === messageId)
+    if (message) {
+        message.sources = sources
+        saveSession(session)
+    }
+}
+
 // ------------------------------
 // CLEAN MARKDOWN
 // ------------------------------
@@ -116,11 +128,18 @@ export const generateAIResponseStream = async (
         console.log('[DEBUG] Fetching:', url)
         console.log('[DEBUG] Payload:', { message: userMessage, history: recentHistory })
 
+        // JWT 토큰 가져오기
+        const token = localStorage.getItem('token')
+        if (!token) {
+            throw new Error('로그인이 필요합니다.')
+        }
+
         // Fetch API로 스트리밍 요청
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`  // ✅ JWT 토큰 추가
             },
             body: JSON.stringify({
                 message: userMessage,

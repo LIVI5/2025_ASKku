@@ -1,7 +1,7 @@
 import api from '../api/axiosInstance'
 import { Schedule, Timetable, TimetableItem } from '../types'
 import { dummyTimetables } from '../data/dummyData'
-import { getCurrentUser } from '../services/authService' // Keep this for other functionalities if needed
+import { getUserInfo } from '../services/authService' // Keep this for other functionalities if needed
 
 const SCHEDULES_KEY = 'askku_schedules'
 const TIMETABLES_KEY = 'askku_timetables'
@@ -141,11 +141,13 @@ export const saveSchedules = (schedules: Schedule[]): void => {
     localStorage.setItem(SCHEDULES_KEY, JSON.stringify(schedules))
 }
 
+let scheduleIdCounter = 0
+
 export const addSchedule = (schedule: Omit<Schedule, 'id'>): Schedule => {
     const schedules = getSchedules()
     const newSchedule = normalizeSchedule({
         ...schedule,
-        id: `sch_${Date.now()}`
+        id: `sch_${Date.now()}_${scheduleIdCounter++}`  // 고유 ID 보장
     })
     schedules.push(newSchedule)
     saveSchedules(schedules)
