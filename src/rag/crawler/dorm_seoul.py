@@ -176,11 +176,12 @@ def notices_to_documents(notices):
             Document(
                 page_content=body,
                 metadata={
+                    "board_name": "명륜학사(서울)",
                     "title": n["title"],
                     "date": n["date"],
                     "post_num": n["post_num"],
                     "category": n.get("category", ""),
-                    "source": "DORM_SEOUL"
+                    "link": n["link"]
                 }
             )
         )

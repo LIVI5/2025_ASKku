@@ -359,9 +359,11 @@ def get_static_documents() -> List[Document]:
     documents.append(Document(
         page_content=ACADEMIC_CALENDAR_2025,
         metadata={
-            "source_type": "학사일정",
-            "year": "2025",
-            "title": "2025학년도 학사일정"
+            "board_name": "학사일정",
+            "title": "2025학년도 학사일정",
+            "date": "2025",
+            "post_num": "STATIC_CALENDAR_2025",
+            "link": None  # 정적 데이터는 링크 없음
         }
     ))
     
@@ -369,36 +371,40 @@ def get_static_documents() -> List[Document]:
     documents.append(Document(
         page_content=BUILDING_INFO_NATURAL_SCIENCE,
         metadata={
-            "source_type": "건물정보",
+            "board_name": "건물정보",
             "campus": "자연과학",
-            "title": "자연과학캠퍼스 건물 안내"
+            "title": "자연과학캠퍼스 건물 안내",
+            "link": None
         }
     ))
     
     documents.append(Document(
         page_content=BUILDING_INFO_HUMANITIES,
         metadata={
-            "source_type": "건물정보",
+            "board_name": "건물정보",
             "campus": "인문사회",
-            "title": "인문사회과학캠퍼스 건물 안내"
+            "title": "인문사회과학캠퍼스 건물 안내",
+            "link": None
         }
     ))
 
     documents.append(Document(
         page_content=INFO_LIBRARIES_HUMANITIES,
         metadata={
-            "source_type": "도서관 시간정보",
+            "board_name": "중앙도서관",
             "campus": "인문사회",
-            "title": "인문사회과학캠퍼스 도서관(중앙도서관 또는 중도, 법학도서관, 경영관열람실) 안내"
+            "title": "인문사회과학캠퍼스 도서관(중앙도서관 또는 중도, 법학도서관, 경영관열람실) 안내",
+            "link": None
         }
     ))
     
     documents.append(Document(
         page_content=INFO_LIBRARIES_NATURAL_SCIENCE,
         metadata={
-            "source_type": "도서관 시간정보",
+            "board_name": "삼성학술정보관",
             "campus": "자연과학",
-            "title": "자연과학캠퍼스 삼성학술정보관(디지털도서관 또는 디도) 안내"
+            "title": "자연과학캠퍼스 삼성학술정보관(디지털도서관 또는 디도) 안내",
+            "link": None
         }
     ))
         

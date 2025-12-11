@@ -160,11 +160,12 @@ def notices_to_documents(notices):
             Document(
                 page_content=body,
                 metadata={
+                    "board_name": "소프트웨어융합대학",
                     "title": n["title"],
                     "date": n["date"],
                     "post_num": n["post_num"],
                     "author": n.get("author", ""),
-                    "source": "SW_NOTICE"
+                    "link": n["link"]
                 }
             )
         )

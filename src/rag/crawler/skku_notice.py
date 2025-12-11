@@ -182,13 +182,13 @@ def notices_to_documents(notices):
             Document(
                 page_content=body,
                 metadata={
+                    "board_name": "성균관대 대표공지사항",
                     "title": n.get("title", ""),
                     "post_id": n.get("post_id", ""),
                     "link": n.get("link", ""),
                     "category": n.get("category", ""),
                     "date": n.get("date", ""),
                     "department": n.get("department", ""),
-                    "source": "SKKU_NOTICE_MAIN",
                 },
             )
         )
