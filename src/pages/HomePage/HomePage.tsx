@@ -6,7 +6,6 @@ import { Notice } from '../../types'
 
 export default function HomePage() {
     const navigate = useNavigate()
-    const [activeCategory, setActiveCategory] = useState('전체')
     const categories = ['수강신청', '학사일정', '장학금', '기숙사']
 
     // 최신 공지사항 6개
@@ -28,6 +27,10 @@ export default function HomePage() {
         if (quickMessage.trim()) {
             navigate('/chat', { state: { initialMessage: quickMessage.trim() } })
         }
+    }
+
+    const handleCategoryClick = (category: string) => {
+        navigate('/chat', { state: { initialMessage: category } })
     }
 
     return (
@@ -64,11 +67,8 @@ export default function HomePage() {
                 {categories.map((category) => (
                     <button
                         key={category}
-                        onClick={() => setActiveCategory(category)}
-                        className={`px-6 py-2 rounded-full font-medium transition-colors ${activeCategory === category
-                            ? 'bg-askku-primary text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                        onClick={() => handleCategoryClick(category)}
+                        className="px-6 py-2 rounded-full font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
                     >
                         {category}
                     </button>
