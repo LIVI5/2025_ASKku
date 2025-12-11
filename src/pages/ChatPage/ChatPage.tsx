@@ -16,7 +16,8 @@ import {
     getCurrentSession,
     removeBookmark,
     toggleMessageBookmark,
-    updateMessage
+    updateMessage,
+    updateMessageSources
 } from '../../services/chatService'
 
 import { addSchedule } from '../../services/myPageService'
@@ -109,9 +110,19 @@ export default function ChatPage() {
                         )
                     )
                 },
-                // onSources: 출처 정보 (필요시 활용)
+                // onSources: 출처 정보 저장
                 (sources) => {
                     console.log('Sources:', sources)
+                    // UI 업데이트
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, sources: sources }
+                                : m
+                        )
+                    )
+                    // localStorage에 저장
+                    updateMessageSources(aiMessage.id, sources)
                 },
                 // onComplete: 완료 시
                 () => {
@@ -182,7 +193,20 @@ export default function ChatPage() {
                         )
                     )
                 },
-                undefined,
+                // onSources: 출처 정보 저장
+                (sources) => {
+                    console.log('Sources:', sources)
+                    // UI 업데이트
+                    setMessages(prev =>
+                        prev.map(m =>
+                            m.id === aiMessage.id
+                                ? { ...m, sources: sources }
+                                : m
+                        )
+                    )
+                    // localStorage에 저장
+                    updateMessageSources(aiMessage.id, sources)
+                },
                 () => {
                     setIsLoading(false)
                 },
@@ -203,7 +227,17 @@ export default function ChatPage() {
     const handleBookmark = async (messageId: string) => {
         await toggleMessageBookmark(messageId)
         const session = getCurrentSession()
-        if (session) setMessages([...session.messages])
+        if (session) {
+            // 현재 메시지의 sources를 유지하면서 업데이트
+            setMessages(prev =>
+                session.messages.map(sessionMsg => {
+                    const existingMsg = prev.find(m => m.id === sessionMsg.id)
+                    return existingMsg?.sources
+                        ? { ...sessionMsg, sources: existingMsg.sources }
+                        : sessionMsg
+                })
+            )
+        }
         setBookmarks(getBookmarks())
     }
 
@@ -251,8 +285,6 @@ export default function ChatPage() {
                 date: item.startDate,
                 startDate: item.startDate,
                 endDate: item.endDate ?? item.startDate,
-                startTime: item.startTime,
-                endTime: item.endTime,
                 allDay: item.allDay ?? false,
                 description: item.description,
                 type,

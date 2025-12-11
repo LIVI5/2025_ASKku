@@ -139,7 +139,7 @@ export default function EditPersonalInfoModal({ isOpen, onClose }: EditPersonalI
             }
         }
 
-        onClose()
+                onClose()
     }
 
     return ReactDOM.createPortal(
@@ -348,8 +348,8 @@ export default function EditPersonalInfoModal({ isOpen, onClose }: EditPersonalI
                                 type="submit"
                                 className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
                             >
-                                                                저장
-                                                        </button>                        </div>
+                                저장
+                            </button>                        </div>
                     </form>
                 )}
             </div>

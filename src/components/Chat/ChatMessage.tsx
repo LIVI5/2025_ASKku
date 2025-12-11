@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ChatMessage as ChatMessageType } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
 import ReactMarkdown from 'react-markdown'
@@ -15,6 +16,8 @@ interface ChatMessageProps {
 
 export default function ChatMessage({ message, onBookmark, onScheduleExtract, onTranslate }: ChatMessageProps) {
     const isUser = message.role === 'user'
+    const [showSources, setShowSources] = useState(false)
+
     const time = new Date(message.timestamp).toLocaleTimeString('ko-KR', {
         hour: '2-digit',
         minute: '2-digit'
@@ -93,6 +96,38 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                 </ReactMarkdown>
                             )}
                         </div>
+
+                        {/* 출처 표시 섹션 */}
+                        {!isUser && message.sources && message.sources.length > 0 && showSources && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-xs font-semibold text-gray-600 mb-2">📚 참고 문서:</p>
+                                <div className="space-y-2">
+                                    {message.sources.map((source, idx) => (
+                                        <div key={idx} className="text-xs bg-white p-2 rounded border border-gray-200">
+                                            <p className="font-medium text-gray-700 mb-1">
+                                                {source.title || `문서 ${idx + 1}`}
+                                            </p>
+                                            {source.url && (
+                                                <a
+                                                    href={source.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                    링크열기
+                                                </a>
+                                            )}
+                                            {source.snippet && (
+                                                <p className="text-gray-600 mt-1 line-clamp-2">{source.snippet}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -141,6 +176,25 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                     <path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
                                 </svg>
                                 번역
+                            </button>
+                        )}
+                        {!isUser && message.sources && message.sources.length > 0 && (
+                            <button
+                                onClick={() => setShowSources(!showSources)}
+                                className={`text-xs px-2 py-0.5 rounded transition-colors flex items-center gap-1 ${showSources
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-gray-500 hover:bg-gray-100'
+                                    }`}
+                                title="출처 보기"
+                            >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                    <polyline points="10 9 9 9 8 9" />
+                                </svg>
+                                출처 ({message.sources.length})
                             </button>
                         )}
                     </div>
