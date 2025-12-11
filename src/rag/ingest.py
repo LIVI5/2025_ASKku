@@ -319,7 +319,7 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
     
     # 전체 게시판 통합하여 최신 공지 업데이트
     if all_notices:
-        update_latest_notices(all_notices, top_n=3)
+        update_latest_notices(all_notices, top_n=6)
     
     # 추가 크롤러 설정 (식당 메뉴 등 - 최신 공지에 포함 안 됨)
     # additional_crawlers = [
