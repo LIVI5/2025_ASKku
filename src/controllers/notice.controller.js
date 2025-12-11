@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 // latest_notices.json 파일 경로
-const LATEST_NOTICES_PATH = path.join(__dirname, "../../rag/latest_notices.json");
+const LATEST_NOTICES_PATH = path.join(__dirname, "../rag/latest_notices.json");
 
 // ==================== 최신 공지사항 조회 ====================
 const getLatestNotices = async (req, res) => {
