@@ -33,6 +33,16 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(120),
         allowNull: true,
       },
+      alias: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: '과목 별칭'
+      },
+      color: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: '과목 색상'
+      },
     },
     {
       tableName: "TIMETABLE_ITEM",

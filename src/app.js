@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ===== ROUTES =====
-app.use("/api/timetables", timetableRoutes);
+app.use("/api/timetable", timetableRoutes);
 app.use("/api/bookmarks", bookmarkRoutes);
 app.use("/api/rag", ragRoutes);
 app.use("/api/users", userRoutes);

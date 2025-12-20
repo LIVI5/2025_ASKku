@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models");
+const { User, Timetable } = require("../models");
 
 // ------------------ REGISTER ------------------
 const register = async (req, res) => {
@@ -37,6 +37,9 @@ const register = async (req, res) => {
       grade, // 필수
       additional_info: additional_info || null,
     });
+
+    // 사용자의 기본 시간표 생성
+    await Timetable.create({ userID: user.userID });
 
     return res.status(201).json({
       success: true,

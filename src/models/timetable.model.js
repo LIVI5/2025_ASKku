@@ -13,14 +13,6 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      season: {
-        type: DataTypes.STRING(50),
-        allowNull: true, // 예: '2025 Spring'
-      },
-      title: {
-        type: DataTypes.STRING(100),
-        allowNull: true, // UI에서 이름줄 수 있음
-      },
     },
     {
       tableName: "TIMETABLE",
