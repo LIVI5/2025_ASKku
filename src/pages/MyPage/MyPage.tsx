@@ -80,12 +80,11 @@ export default function MyPage() {
     const renderMainView = () => {
         if (view === 'calendar') {
             return (
-                <div key={scheduleRefreshKey}>
-                    <CalendarView
-                        onAddClick={() => setIsScheduleModalOpen(true)}
-                        onScheduleClick={handleScheduleClick}
-                    />
-                </div>
+                <CalendarView
+                    onAddClick={() => setIsScheduleModalOpen(true)}
+                    onScheduleClick={handleScheduleClick}
+                    refreshTrigger={scheduleRefreshKey}
+                />
             )
         }
 

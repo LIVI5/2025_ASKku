@@ -20,7 +20,7 @@ import {
     updateMessageSources
 } from '../../services/chatService'
 
-import { addSchedule } from '../../services/myPageService'
+import { addPrimaryScheduleItem } from '../../services/myPageService' // Updated import
 import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule } from '../../types'
 import logoImage from '../../assets/logo_nonbg.svg'
 
@@ -298,30 +298,47 @@ export default function ChatPage() {
     // ---------------------------
     // 일정 추가 확인
     // ---------------------------
-    const handleScheduleConfirm = (selected: ExtractedSchedule[]) => {
+    const handleScheduleConfirm = async (selected: ExtractedSchedule[]) => { // Made async
         if (selected.length === 0) {
             setIsScheduleModalOpen(false)
             return
         }
 
-        selected.forEach(item => {
-            const type = normalizeType(item.type)
-            addSchedule({
-                title: item.title,
-                date: item.startDate,
-                startDate: item.startDate,
-                endDate: item.endDate ?? item.startDate,
-                allDay: item.allDay ?? false,
-                description: item.description,
-                type,
-                location: item.location,
-                subject: type === 'subject' ? item.title : undefined,
-                color: undefined,
-                sourceId: item.id
-            })
-        })
+        setIsScheduleLoading(true); // Indicate loading while adding schedules
+        let successfulAdditions = 0;
 
-        alert(`${selected.length}개의 일정이 캘린더에 추가되었습니다.`)
+        for (const item of selected) { // Use for...of for async inside loop
+            const type = normalizeType(item.type)
+            try {
+                await addPrimaryScheduleItem({
+                    title: item.title,
+                    date: item.startDate,
+                    startDate: item.startDate,
+                    endDate: item.endDate ?? item.startDate,
+                    allDay: item.allDay ?? false,
+                    description: item.description,
+                    type,
+                    location: item.location,
+                    // The 'subject' field on Schedule is used for type 'subject'.
+                    // If the extracted item's type is subject, its title can be the subject name.
+                    subject: type === 'subject' ? item.title : undefined,
+                    color: item.color, // Pass extracted color if available, otherwise undefined for backend default
+                    sourceId: item.id
+                })
+                successfulAdditions++;
+            } catch (error) {
+                console.error('Failed to add extracted schedule:', item, error);
+                // Optionally, inform the user about the failure for this specific item
+            }
+        }
+
+        if (successfulAdditions > 0) {
+            alert(`${successfulAdditions}개의 일정이 캘린더에 추가되었습니다.`)
+        } else {
+            alert('일정 추가에 실패했습니다. 다시 시도해주세요.')
+        }
+        
+        setIsScheduleLoading(false); // End loading
         setIsScheduleModalOpen(false)
         setScheduleCandidates([])
     }
