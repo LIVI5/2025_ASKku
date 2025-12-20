@@ -109,12 +109,12 @@ export const deleteSchedule = (id: string): void => {
 // --- NEW Timetable Management (API-based) ---
 
 /**
- * Fetches the user's single timetable from the server.
+ * Fetches the user's primary timetable from the server.
  * @returns A Promise that resolves to the user's Timetable object.
  */
 export const getTimetable = async (): Promise<Timetable> => {
     try {
-        const response = await api.get<{ timetable: Timetable }>('/api/timetable/my');
+        const response = await api.get<{ timetable: Timetable }>('/api/timetable/primary');
         // The backend sends { timetable: { ... } }, so we extract it.
         return response.data.timetable;
     } catch (error) {
@@ -126,12 +126,12 @@ export const getTimetable = async (): Promise<Timetable> => {
 };
 
 /**
- * Adds a new course (TimetableItem) to the user's timetable.
+ * Adds a new course (TimetableItem) to the user's primary timetable.
  * @param item - The course data, without the 'itemID' and 'timetableID'.
  * @returns A Promise that resolves to the newly created TimetableItem (including its new id).
  */
 export const addTimetableItem = async (item: Omit<TimetableItem, 'itemID' | 'timetableID'>): Promise<TimetableItem> => {
-    const response = await api.post<TimetableItem>('/api/timetable/my/items', item);
+    const response = await api.post<TimetableItem>('/api/timetable/primary/items', item);
     return response.data;
 };
 
@@ -142,7 +142,7 @@ export const addTimetableItem = async (item: Omit<TimetableItem, 'itemID' | 'tim
  * @returns A Promise that resolves to the updated TimetableItem.
  */
 export const updateTimetableItem = async (itemId: number, item: Partial<Omit<TimetableItem, 'itemID' | 'timetableID'>>): Promise<TimetableItem> => {
-    const response = await api.put<TimetableItem>(`/api/timetable/my/items/${itemId}`, item);
+    const response = await api.put<TimetableItem>(`/api/timetable/items/${itemId}`, item);
     return response.data;
 };
 
@@ -151,7 +151,7 @@ export const updateTimetableItem = async (itemId: number, item: Partial<Omit<Tim
  * @param itemId - The ID of the course to delete.
  */
 export const deleteTimetableItem = async (itemId: number): Promise<void> => {
-    await api.delete(`/api/timetable/my/items/${itemId}`);
+    await api.delete(`/api/timetable/items/${itemId}`);
 };
 
 
