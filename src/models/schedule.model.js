@@ -51,6 +51,11 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(120),
         allowNull: true,
       },
+      color: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        defaultValue: "#3B82F6", // Default color for schedules
+      },
     },
     {
       tableName: "SCHEDULE",
