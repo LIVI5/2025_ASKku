@@ -1,96 +1,29 @@
 const { Timetable, TimetableItem } = require("../models");
 
-// ---------------------- CREATE TIMETABLE ----------------------
-const createTimetable = async (req, res) => {
-  try {
-    const userID = req.user.userID;
-    const { season, title } = req.body;
-
-    const newTimetable = await Timetable.create({
-      userID,
-      season,
-      title: title || `${season} 시간표`
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "시간표가 생성되었습니다.",
-      data: newTimetable,
-    });
-
-  } catch (err) {
-    console.error("Timetable Create Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
-  }
-};
-
-
-// ---------------------- GET ALL TIMETABLES ----------------------
-const getMyTimetables = async (req, res) => {
+// ---------------------- GET MY TIMETABLE ----------------------
+const getMyTimetable = async (req, res) => {
   try {
     const userID = req.user.userID;
     
-    const timetables = await Timetable.findAll({
+    const timetable = await Timetable.findOne({
       where: { userID },
-      include: [{ model: TimetableItem }]
+      include: [{ model: TimetableItem, as: 'items' }] // 'as' should match the association alias in models/index.js
     });
-
-    return res.json({ success: true, timetables });
-
-  } catch (err) {
-    console.error("Get Timetables Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
-  }
-};
-
-
-// ---------------------- UPDATE TIMETABLE ----------------------
-const updateTimetable = async (req, res) => {
-  try {
-    const { timetableID } = req.params;
-    const userID = req.user.userID;
-
-    const timetable = await Timetable.findOne({ where: { timetableID, userID } });
 
     if (!timetable) {
-      return res.status(403).json({ success: false, message: "권한이 없습니다." });
+        // This case might happen if a user was created before this logic was implemented.
+        // We can create one for them on the fly.
+        const newTimetable = await Timetable.create({ userID });
+        return res.json({ success: true, timetable: newTimetable });
     }
 
-    await timetable.update(req.body);
-
-    return res.json({
-      success: true,
-      message: "시간표 정보가 수정되었습니다.",
-      data: timetable,
-    });
+    return res.json({ success: true, timetable });
 
   } catch (err) {
-    console.error("Update Timetable Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
+    console.error("Get Timetable Error:", err);
+    return res.status(500).json({ success: false, message: "시간표 조회 중 서버 오류가 발생했습니다." });
   }
 };
-
-
-// ---------------------- DELETE TIMETABLE ----------------------
-const deleteTimetable = async (req, res) => {
-  try {
-    const { timetableID } = req.params;
-    const userID = req.user.userID;
-
-    const timetable = await Timetable.findOne({ where: { timetableID, userID } });
-
-    if (!timetable) return res.status(404).json({ success: false, message: "삭제할 시간표가 없습니다." });
-
-    await timetable.destroy(); // CASCADE → item도 삭제됨
-
-    return res.json({ success: true, message: "시간표가 삭제되었습니다." });
-
-  } catch (err) {
-    console.error("Delete Timetable Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
-  }
-};
-
 
 // ================= TIMETABLE ITEM (수업 등록/수정/삭제) =================
 
@@ -98,26 +31,32 @@ const deleteTimetable = async (req, res) => {
 const addTimetableItem = async (req, res) => {
   try {
     const userID = req.user.userID;
-    const { timetableID } = req.params;
-    const { courseName, dayOfWeek, startTime, endTime, location } = req.body;
+    const { courseName, dayOfWeek, startTime, endTime, location, alias, color } = req.body;
 
-    const timetable = await Timetable.findOne({ where: { timetableID, userID } });
+    // 1. Find the user's single timetable
+    const timetable = await Timetable.findOne({ where: { userID } });
 
-    if (!timetable) return res.status(403).json({ success: false, message: "해당 시간표에 접근할 수 없습니다." });
+    if (!timetable) {
+        // This should theoretically not happen for new users, but as a fallback.
+        return res.status(404).json({ success: false, message: "사용자의 시간표를 찾을 수 없습니다. 다시 로그인 후 시도해주세요." });
+    }
 
+    // 2. Create the item associated with that timetable
     const newItem = await TimetableItem.create({
-      timetableID,
+      timetableID: timetable.timetableID,
       courseName,
       dayOfWeek,
       startTime,
       endTime,
-      location
+      location,
+      alias,
+      color
     });
 
     return res.status(201).json({ success: true, message: "과목이 추가되었습니다.", data: newItem });
   } catch (err) {
     console.error("Add Item Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
+    return res.status(500).json({ success: false, message: "과목 추가 중 서버 오류가 발생했습니다." });
   }
 };
 
@@ -129,18 +68,19 @@ const updateTimetableItem = async (req, res) => {
     const { itemID } = req.params;
 
     const item = await TimetableItem.findByPk(itemID);
-    if (!item) return res.status(404).json({ success: false, message: "항목이 존재하지 않습니다." });
+    if (!item) return res.status(404).json({ success: false, message: "수정할 과목을 찾을 수 없습니다." });
 
+    // Authorization check: Ensure the item belongs to the current user's timetable
     const timetable = await Timetable.findOne({ where: { timetableID: item.timetableID, userID } });
-    if (!timetable) return res.status(403).json({ success: false, message: "수정 권한이 없습니다." });
+    if (!timetable) return res.status(403).json({ success: false, message: "해당 과목을 수정할 권한이 없습니다." });
 
     await item.update(req.body);
 
-    return res.json({ success: true, message: "과목 수정 완료", data: item });
+    return res.json({ success: true, message: "과목 정보가 수정되었습니다.", data: item });
 
   } catch (err) {
     console.error("Update Item Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
+    return res.status(500).json({ success: false, message: "과목 수정 중 서버 오류가 발생했습니다." });
   }
 };
 
@@ -152,27 +92,24 @@ const deleteTimetableItem = async (req, res) => {
     const { itemID } = req.params;
 
     const item = await TimetableItem.findByPk(itemID);
-    if (!item) return res.status(404).json({ success: false, message: "항목 없음" });
+    if (!item) return res.status(404).json({ success: false, message: "삭제할 과목을 찾을 수 없습니다." });
 
+    // Authorization check
     const timetable = await Timetable.findOne({ where: { timetableID: item.timetableID, userID } });
-
-    if (!timetable) return res.status(403).json({ success: false, message: "삭제 권한이 없습니다." });
+    if (!timetable) return res.status(403).json({ success: false, message: "해당 과목을 삭제할 권한이 없습니다." });
 
     await item.destroy();
 
-    return res.json({ success: true, message: "과목 삭제 완료" });
+    return res.json({ success: true, message: "과목이 삭제되었습니다." });
 
   } catch (err) {
     console.error("Delete Item Error:", err);
-    return res.status(500).json({ success: false, message: "서버 오류" });
+    return res.status(500).json({ success: false, message: "과목 삭제 중 서버 오류가 발생했습니다." });
   }
 };
 
 module.exports = {
-  createTimetable,
-  getMyTimetables,
-  updateTimetable,
-  deleteTimetable,
+  getMyTimetable,
   addTimetableItem,
   updateTimetableItem,
   deleteTimetableItem

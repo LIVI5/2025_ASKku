@@ -31,15 +31,15 @@ const {
   Calendar
 } = db;
 
-// USER → TIMETABLE (1:N)
+// USER → TIMETABLE (1:1)
 if (User && Timetable) {
-  User.hasMany(Timetable, { foreignKey: "userID", onDelete: "CASCADE" });
+  User.hasOne(Timetable, { foreignKey: "userID", onDelete: "CASCADE" });
   Timetable.belongsTo(User, { foreignKey: "userID" });
 }
 
 // TIMETABLE → TIMETABLE_ITEM (1:N)
 if (Timetable && TimetableItem) {
-  Timetable.hasMany(TimetableItem, { foreignKey: "timetableID", onDelete: "CASCADE" });
+  Timetable.hasMany(TimetableItem, { as: "items", foreignKey: "timetableID", onDelete: "CASCADE" });
   TimetableItem.belongsTo(Timetable, { foreignKey: "timetableID" });
 }
 
