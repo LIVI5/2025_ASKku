@@ -1,51 +1,50 @@
-import { useState, useEffect } from 'react'
-import { getTimetables, deleteTimetableItem } from '../../services/myPageService'
+import { Fragment } from 'react'
 import { TimetableItem } from '../../types'
 
 interface TimetableViewProps {
-    onAddClick: () => void
+    onAddClick: () => void;
+    items: TimetableItem[];
+    onDeleteItem: (id: number) => void;
 }
 
 const HOUR_HEIGHT = 64; // Height of one hour slot in pixels (e.g., 64px for h-16 equivalent)
 const MINUTES_IN_HOUR = 60;
-const TIMETABLE_START_HOUR = 9; // 09:00
-const TIMETABLE_END_HOUR = 18; // 18:00
-
-const hourLabels = Array.from({ length: TIMETABLE_END_HOUR - TIMETABLE_START_HOUR + 1 }, (_, i) => {
-    const hour = TIMETABLE_START_HOUR + i;
-    return `${hour.toString().padStart(2, '0')}:00`;
-});
-
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-const weekDayLabels = ['월', '화', '수', '목', '금']
+const weekDays = ['월', '화', '수', '목', '금'];
 
 const getTimeInMinutes = (time: string): number => {
+    if (!time) return 0;
     const [hours, minutes] = time.split(':').map(Number);
     return hours * MINUTES_IN_HOUR + minutes;
 };
 
-export default function TimetableView({ onAddClick }: TimetableViewProps) {
-    const [timetable, setTimetable] = useState<TimetableItem[]>([])
 
-    useEffect(() => {
-        setTimetable(getTimetables())
-    }, [])
+export default function TimetableView({ onAddClick, items = [], onDeleteItem }: TimetableViewProps) {
+    
+    // --- Dynamic Timetable Hours Logic ---
+    const TIMETABLE_START_HOUR = 9; // 09:00
 
-    const handleDelete = (id: string) => {
-        deleteTimetableItem(id)
-        setTimetable(getTimetables()) // Refresh the list
-    }
+    // Check if there are any classes ending after 6 PM
+    const hasLateClasses = items.some(item => getTimeInMinutes(item.endTime) > 18 * 60);
+    
+    // Set end hour to 10 PM if there are late classes, otherwise 6 PM
+    const TIMETABLE_END_HOUR = hasLateClasses ? 21 : 18;
+
+    const hourLabels = Array.from({ length: TIMETABLE_END_HOUR - TIMETABLE_START_HOUR + 1 }, (_, i) => {
+        const hour = TIMETABLE_START_HOUR + i;
+        return `${hour.toString().padStart(2, '0')}:00`;
+    });
+    // --- End Dynamic Logic ---
 
     const calculateEventStyles = (item: TimetableItem) => {
         const startMinutes = getTimeInMinutes(item.startTime);
         const endMinutes = getTimeInMinutes(item.endTime);
         const durationMinutes = endMinutes - startMinutes;
-
+    
         const timetableStartMinutes = TIMETABLE_START_HOUR * MINUTES_IN_HOUR;
-
+    
         const top = ((startMinutes - timetableStartMinutes) / MINUTES_IN_HOUR) * HOUR_HEIGHT;
         const height = (durationMinutes / MINUTES_IN_HOUR) * HOUR_HEIGHT;
-
+    
         return {
             top: `${top}px`,
             height: `${height}px`,
@@ -78,15 +77,15 @@ export default function TimetableView({ onAddClick }: TimetableViewProps) {
                     <div className="border border-gray-200 bg-gray-50 p-2 text-sm font-semibold text-gray-700 text-center">
                         시간
                     </div>
-                    {weekDayLabels.map(day => (
+                    {weekDays.map(day => (
                         <div key={day} className="border border-gray-200 bg-gray-50 p-2 text-sm font-semibold text-gray-700 text-center">
                             {day}
                         </div>
                     ))}
 
                     {/* Time labels and Day Grid Cells */}
-                    {hourLabels.map((hour, index) => (
-                        <>
+                    {hourLabels.map((hour) => (
+                        <Fragment key={hour}>
                             <div
                                 key={`time-${hour}`}
                                 className="border border-gray-200 bg-gray-50 p-2 text-xs text-gray-600 text-center font-medium relative"
@@ -103,7 +102,7 @@ export default function TimetableView({ onAddClick }: TimetableViewProps) {
                                     {/* These are just grid cells for visual lines */}
                                 </div>
                             ))}
-                        </>
+                        </Fragment>
                     ))}
                 </div>
 
@@ -114,24 +113,24 @@ export default function TimetableView({ onAddClick }: TimetableViewProps) {
                 >
                     {weekDays.map((day) => (
                         <div key={`events-column-${day}`} className="relative h-full">
-                            {timetable
-                                .filter(item => item.day === day)
+                            {items
+                                .filter(item => item.dayOfWeek === day)
                                 .map(item => (
                                     <div
-                                        key={item.id}
+                                        key={item.itemID}
                                         className="group relative text-gray-800 border border-gray-200 px-1 py-2"
-                                        style={{ ...calculateEventStyles(item), backgroundColor: item.color || '#E5E7EB' }}
+                                        style={{ ...calculateEventStyles(item), backgroundColor: item.color || '#DBEAFE' }}
                                     >
                                         <div className="text-xs font-semibold line-clamp-1">
-                                            {item.subject}
+                                            {item.courseName}
                                         </div>
                                         <div className="text-xs line-clamp-1">
-                                            {item.room}
+                                            {item.location}
                                         </div>
                                         <button
                                             onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleDelete(item.id)
+                                                e.stopPropagation();
+                                                onDeleteItem(item.itemID);
                                             }}
                                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 shadow-sm hover:bg-red-50 text-gray-700"
                                         >

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { addSchedule, getTimetableData } from '../../services/myPageService'
-import { Timetable, Subject, Schedule } from '../../types'
+import { addSchedule, getTimetable } from '../../services/myPageService'
+import { TimetableItem, Schedule } from '../../types'
 
 interface AddScheduleModalProps {
     isOpen: boolean
@@ -15,28 +15,27 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
     const [type, setType] = useState<Schedule['type']>('personal')
     const [color, setColor] = useState('#3B82F6')
 
-    const [timetables, setTimetables] = useState<Timetable[]>([])
-    const [subjects, setSubjects] = useState<Subject[]>([])
+    const [timetableItems, setTimetableItems] = useState<TimetableItem[]>([])
+    const [isTimetableLoading, setIsTimetableLoading] = useState(false)
     const [selectedSubject, setSelectedSubject] = useState('')
 
     useEffect(() => {
-        if (isOpen) {
-            const allTimetables = getTimetableData();
-            setTimetables(allTimetables);
-            // If there's at least one timetable, select the subjects from the first one
-            if (allTimetables.length > 0) {
-                setSubjects(allTimetables[0].subjects);
+        const fetchItems = async () => {
+            if (isOpen && type === 'subject') {
+                setIsTimetableLoading(true);
+                try {
+                    const timetable = await getTimetable();
+                    setTimetableItems(timetable.items || []);
+                } catch (error) {
+                    console.error("Failed to fetch timetable items for schedule modal", error);
+                    setTimetableItems([]); // Clear items on error
+                } finally {
+                    setIsTimetableLoading(false);
+                }
             }
-        }
-    }, [isOpen])
-
-    useEffect(() => {
-        // If there are timetables, but no subject selected yet,
-        // and if subjects are not already loaded (e.g. on first open)
-        if (timetables.length > 0 && subjects.length === 0) {
-            setSubjects(timetables[0].subjects);
-        }
-    }, [timetables, subjects.length]);
+        };
+        fetchItems();
+    }, [isOpen, type]);
 
     if (!isOpen) return null
 
@@ -47,7 +46,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         setType('personal')
         setColor('#3B82F6')
         setSelectedSubject('')
-        setSubjects([])
+        setTimetableItems([])
     }
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -62,8 +61,11 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
             color
         }
 
+        // Note: The `subject` property on Schedule might not exist.
+        // Assuming it's a string for now based on previous logic.
+        // This might need adjustment based on the actual `Schedule` type definition.
         if (type === 'subject') {
-            scheduleData.subject = selectedSubject
+            (scheduleData as any).subject = selectedSubject
         }
 
         addSchedule(scheduleData)
@@ -148,13 +150,20 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                                 value={selectedSubject}
                                 onChange={(e) => setSelectedSubject(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                                disabled={isTimetableLoading}
                             >
-                                <option value="">과목 없음</option>
-                                {subjects.map((s) => (
-                                    <option key={s.id} value={s.name}>
-                                        {s.name} ({s.professor})
-                                    </option>
-                                ))}
+                                {isTimetableLoading ? (
+                                    <option>과목 불러오는 중...</option>
+                                ) : (
+                                    <>
+                                        <option value="">과목 없음</option>
+                                        {timetableItems.map((item) => (
+                                            <option key={item.id} value={item.subject}>
+                                                {item.subject}
+                                            </option>
+                                        ))}
+                                    </>
+                                )}
                             </select>
                         </div>
                     )}
