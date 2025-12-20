@@ -38,8 +38,6 @@ const register = async (req, res) => {
       additional_info: additional_info || null,
     });
 
-    // 사용자의 기본 시간표 생성
-    await Timetable.create({ userID: user.userID });
 
     return res.status(201).json({
       success: true,
