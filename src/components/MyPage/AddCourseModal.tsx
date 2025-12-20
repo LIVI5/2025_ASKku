@@ -1,45 +1,91 @@
 import { useState } from 'react'
 import { addTimetableItem } from '../../services/myPageService'
+import { TimetableItem } from '../../types'
 
 interface AddCourseModalProps {
     isOpen: boolean
     onClose: () => void
-    onSuccess: () => void
+    onSuccess: (newItem: TimetableItem) => void
 }
 
 export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourseModalProps) {
-    const [subject, setSubject] = useState('')
-    const [room, setRoom] = useState('')
-    const [day, setDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'>('Mon')
+    const [courseName, setCourseName] = useState('')
+    const [location, setLocation] = useState('')
+    const [dayOfWeek, setDayOfWeek] = useState<'월' | '화' | '수' | '목' | '금'>('월')
     const [startTime, setStartTime] = useState('09:00')
     const [endTime, setEndTime] = useState('10:30')
-    const [color, setColor] = useState('#DBEAFE')
     const [alias, setAlias] = useState('')
+    const [color, setColor] = useState('#DBEAFE')
+    
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     if (!isOpen) return null
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!subject || !room) return
+        setError(null); // Clear previous errors
 
-        addTimetableItem({
-            subject,
-            room,
-            day,
-            startTime,
-            endTime,
-            color,
-            alias
-        })
+        // --- Validation ---
+        if (!courseName || !location) {
+            setError('과목명과 강의실을 모두 입력해주세요.');
+            return;
+        }
 
-        setSubject('')
-        setRoom('')
-        setDay('Mon')
-        setStartTime('09:00')
-        setEndTime('10:30')
-        setAlias('')
-        onSuccess()
-        onClose()
+        const startMinutes = timeToMinutes(startTime);
+        const endMinutes = timeToMinutes(endTime);
+
+        if (startMinutes < 9 * 60) {
+            setError('시작 시간은 오전 9시 이전으로 설정할 수 없습니다.');
+            return;
+        }
+        if (endMinutes > 22 * 60) {
+            setError('종료 시간은 오후 10시 이후로 설정할 수 없습니다.');
+            return;
+        }
+        if (startMinutes >= endMinutes) {
+            setError('시작 시간은 종료 시간보다 빨라야 합니다.');
+            return;
+        }
+        // --- End Validation ---
+
+        setLoading(true)
+        try {
+            const newItemPayload = {
+                courseName,
+                location,
+                dayOfWeek,
+                startTime: `${startTime}:00`,
+                endTime: `${endTime}:00`,
+                alias,
+                color,
+            };
+
+            const newItem = await addTimetableItem(newItemPayload as Omit<TimetableItem, 'itemID' | 'timetableID'>);
+
+            // Reset form on success
+            setCourseName('')
+            setLocation('')
+            setDayOfWeek('월')
+            setStartTime('09:00')
+            setEndTime('10:30')
+            setAlias('')
+            setColor('#DBEAFE')
+            
+            onSuccess(newItem)
+            onClose()
+
+        } catch (err) {
+            setError('수업 추가에 실패했습니다. 다시 시도해주세요.')
+            console.error(err)
+        } finally {
+            setLoading(false)
+        }
     }
 
     const colors = [
@@ -53,23 +99,26 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">시간표 추가</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">수업 추가</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">과목명</label>
                         <input
                             type="text"
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
+                            name="courseName"
+                            value={courseName}
+                            onChange={(e) => setCourseName(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
                             placeholder="예: 데이터베이스개론"
                             required
                         />
                     </div>
-                    <div>
+                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">별칭 (선택)</label>
                         <input
                             type="text"
+                            name="alias"
                             value={alias}
                             onChange={(e) => setAlias(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
@@ -80,8 +129,9 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
                         <label className="block text-sm font-medium text-gray-700 mb-1">강의실</label>
                         <input
                             type="text"
-                            value={room}
-                            onChange={(e) => setRoom(e.target.value)}
+                            name="location"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
                             placeholder="예: 공학관 301호"
                             required
@@ -91,15 +141,16 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">요일</label>
                             <select
-                                value={day}
-                                onChange={(e) => setDay(e.target.value as any)}
+                                name="dayOfWeek"
+                                value={dayOfWeek}
+                                onChange={(e) => setDayOfWeek(e.target.value as any)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
                             >
-                                <option value="Mon">월요일</option>
-                                <option value="Tue">화요일</option>
-                                <option value="Wed">수요일</option>
-                                <option value="Thu">목요일</option>
-                                <option value="Fri">금요일</option>
+                                <option value="월">월요일</option>
+                                <option value="화">화요일</option>
+                                <option value="수">수요일</option>
+                                <option value="목">목요일</option>
+                                <option value="금">금요일</option>
                             </select>
                         </div>
                     </div>
@@ -150,9 +201,10 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
+                            disabled={loading}
+                            className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            추가
+                            {loading ? '추가 중...' : '추가'}
                         </button>
                     </div>
                 </form>

@@ -100,23 +100,21 @@ export type ExtractedSchedule = {
     location?: string;
 };
 
-export interface Subject {
-    id: string
-    name: string
-    professor: string
-}
-
 export interface Timetable {
-    subjects: Subject[]
+    timetableID: number;
+    userID: number;
+    createdAt: string;
+    items: TimetableItem[];
 }
 
 export interface TimetableItem {
-    id: string
-    subject: string
-    room: string
-    day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
-    startTime: string // HH:mm
-    endTime: string // HH:mm
-    color?: string
-    alias?: string
+    itemID: number;
+    timetableID: number;
+    courseName: string;
+    dayOfWeek: '월' | '화' | '수' | '목' | '금';
+    startTime: string; // HH:mm:ss
+    endTime: string; // HH:mm:ss
+    location: string;
+    alias?: string;
+    color?: string;
 }
