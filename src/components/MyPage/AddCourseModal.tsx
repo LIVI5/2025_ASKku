@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { addTimetableItem } from '../../services/myPageService'
 
-interface AddTimetableModalProps {
+interface AddCourseModalProps {
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
 }
 
-export default function AddTimetableModal({ isOpen, onClose, onSuccess }: AddTimetableModalProps) {
+export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourseModalProps) {
     const [subject, setSubject] = useState('')
     const [room, setRoom] = useState('')
     const [day, setDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'>('Mon')

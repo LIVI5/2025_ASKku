@@ -2,7 +2,7 @@ import { useState } from 'react'
 import CalendarView from '../../components/MyPage/CalendarView'
 import TimetableView from '../../components/MyPage/TimetableView'
 import AddScheduleModal from '../../components/MyPage/AddScheduleModal'
-import AddTimetableModal from '../../components/MyPage/AddTimetableModal'
+import AddCourseModal from '../../components/MyPage/AddCourseModal'
 import EditChatSettingsModal from '../../components/MyPage/EditChatSettingsModal'
 import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
 import { Schedule } from '../../types'
@@ -94,7 +94,7 @@ export default function MyPage() {
                 onClose={() => setIsScheduleModalOpen(false)}
                 onSuccess={handleRefresh}
             />
-            <AddTimetableModal
+            <AddCourseModal
                 isOpen={isTimetableModalOpen}
                 onClose={() => setIsTimetableModalOpen(false)}
                 onSuccess={handleRefresh}
