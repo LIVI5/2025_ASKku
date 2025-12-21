@@ -1,6 +1,7 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { getUserInfo } from '../services/authService';
+import { clearSession } from '../services/chatService'; // Import clearSession
 
 interface UserContextType {
     user: User | null;
@@ -18,6 +19,7 @@ interface UserProviderProps {
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    const previousUserId = useRef<string | null>(null); // To track user ID changes
 
     const fetchUser = useCallback(async () => {
         setLoading(true);
@@ -35,6 +37,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
+
+    // Effect to clear chat session on user change
+    useEffect(() => {
+        const currentUserId = user?.userID || null;
+        if (currentUserId !== previousUserId.current) {
+            console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session.`);
+            clearSession();
+            previousUserId.current = currentUserId;
+        }
+    }, [user]); // Rerun when the user object changes
 
     return (
         <UserContext.Provider value={{ user, setUser, loading, fetchUser }}>

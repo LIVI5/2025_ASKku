@@ -20,8 +20,9 @@ import {
     updateMessageSources
 } from '../../services/chatService'
 
-import { addPrimaryScheduleItem } from '../../services/myPageService' // Updated import
-import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule } from '../../types'
+import { addPrimaryScheduleItem, getPrimaryCalendarSchedules, getTimetable } from '../../services/myPageService' // Updated import
+import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule, User, Timetable } from '../../types'
+import { useUser } from '../../contexts/UserContext'
 import logoImage from '../../assets/logo_nonbg.svg'
 
 const normalizeType = (type?: string): Schedule['type'] => {
@@ -40,6 +41,31 @@ export default function ChatPage() {
     const [scheduleCandidates, setScheduleCandidates] = useState<ExtractedSchedule[]>([])
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const initialMessageSentRef = useRef(false)
+
+    const { user, loading: userLoading } = useUser()
+    const [userSchedules, setUserSchedules] = useState<Schedule[]>([])
+    const [userTimetable, setUserTimetable] = useState<Timetable | null>(null)
+
+    // ---------------------------
+    // 사용자 정보 및 일정/시간표 로드
+    // ---------------------------
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (user) {
+                // 스케줄 로드
+                const schedules = await getPrimaryCalendarSchedules()
+                setUserSchedules(schedules)
+
+                // 시간표 로드
+                const timetable = await getTimetable()
+                setUserTimetable(timetable)
+            } else {
+                setUserSchedules([])
+                setUserTimetable(null)
+            }
+        }
+        fetchUserData()
+    }, [user])
 
     // ---------------------------
     // 세션 로드 + 초기 질문 처리
@@ -96,6 +122,9 @@ export default function ChatPage() {
         try {
             await generateAIResponseStream(
                 content,
+                user, // Pass user object
+                userSchedules, // Pass schedules
+                userTimetable, // Pass timetable
                 // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
@@ -179,6 +208,9 @@ export default function ChatPage() {
         try {
             await generateAIResponseStream(
                 request,
+                user, // Pass user object
+                userSchedules, // Pass schedules
+                userTimetable, // Pass timetable
                 // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
