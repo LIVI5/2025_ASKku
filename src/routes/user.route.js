@@ -7,6 +7,8 @@ const {
   login,
   updateAdditionalInfo,
   getMyInfo,
+  verifyPassword,
+  updateProfile,
 } = require("../controllers/user.controller");
 
 
@@ -18,5 +20,9 @@ router.post("/login", login);
 router.get("/me", auth, getMyInfo);
 // 추가 정보 업데이트
 router.put("/additional-info", auth, updateAdditionalInfo);
+// 비밀번호 확인
+router.post("/verify-password", auth, verifyPassword);
+// 개인정보 수정
+router.put("/profile", auth, updateProfile);
 
 module.exports = router;

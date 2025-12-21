@@ -5,13 +5,23 @@ const { User, Timetable } = require("../models");
 // ------------------ REGISTER ------------------
 const register = async (req, res) => {
   try {
-    const { email, password, name, department, grade, additional_info } = req.body;
+    const {
+      email,
+      password,
+      name,
+      department,
+      campus,        // 추가
+      admissionYear, // 추가
+      grade,
+      semester,      // 추가
+      additional_info
+    } = req.body;
 
     // 필수값 검증
-    if (!email || !password || !grade) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "email, password, grade는 필수값입니다.",
+        message: "email과 password는 필수값입니다.",
       });
     }
 
@@ -34,7 +44,10 @@ const register = async (req, res) => {
       password_hash: hash,
       name: name || null,
       department: department || null,
-      grade, // 필수
+      campus: campus || null,           // 추가
+      admissionYear: admissionYear || null, // 추가
+      grade: grade || null,
+      semester: semester || null,       // 추가
       additional_info: additional_info || null,
     });
 
@@ -171,9 +184,116 @@ const getMyInfo = async (req, res) => {
 };
 
 
+// ------------------ 비밀번호 확인 ------------------
+const verifyPassword = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "비밀번호를 입력해주세요.",
+      });
+    }
+
+    const user = await User.findByPk(userID);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    // 비밀번호 확인
+    const match = await bcrypt.compare(password, user.password_hash);
+
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "비밀번호가 일치하지 않습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "비밀번호가 확인되었습니다.",
+    });
+
+  } catch (err) {
+    console.error("Verify Password Error:", err);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
+
+// ------------------ 개인정보 수정 ------------------
+const updateProfile = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const {
+      name,
+      department,
+      campus,
+      admissionYear,
+      grade,
+      semester,
+      password  // 새 비밀번호 (선택 사항)
+    } = req.body;
+
+    const user = await User.findByPk(userID);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    // 업데이트할 데이터 준비
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (department !== undefined) updateData.department = department;
+    if (campus !== undefined) updateData.campus = campus;
+    if (admissionYear !== undefined) updateData.admissionYear = admissionYear;
+    if (grade !== undefined) updateData.grade = grade;
+    if (semester !== undefined) updateData.semester = semester;
+
+    // 비밀번호 변경 요청이 있는 경우
+    if (password && password.length > 0) {
+      // 비밀번호 해시
+      const hash = await bcrypt.hash(password, 10);
+      updateData.password_hash = hash;
+    }
+
+    // 사용자 정보 업데이트
+    await user.update(updateData);
+
+    // 업데이트된 정보 반환 (비밀번호 제외)
+    const updatedUser = await User.findByPk(userID, {
+      attributes: { exclude: ["password_hash"] },
+    });
+
+    return res.json({
+      success: true,
+      message: "개인정보가 성공적으로 수정되었습니다.",
+      user: updatedUser,
+    });
+
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    return res.status(500).json({ success: false, message: "정보 수정 실패" });
+  }
+};
+
+
+
 module.exports = {
   register,
   login,
   updateAdditionalInfo,
   getMyInfo,
+  verifyPassword,
+  updateProfile,
 };

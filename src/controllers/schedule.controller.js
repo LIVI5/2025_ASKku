@@ -4,11 +4,10 @@ const axios = require("axios");
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
 
 // ======================================================
-//               일정 자동 생성 (LLM 기반)
+//               일정 추출 (LLM 기반)
 // ======================================================
 const createScheduleFromChat = async (req, res) => {
   try {
-    const userID = req.user.userID;
     const { question, answer } = req.body;
 
     if (!question || !answer) {
@@ -30,7 +29,7 @@ const createScheduleFromChat = async (req, res) => {
     if (!scheduleData) {
       return res.status(400).json({
         success: false,
-        message: "일정을 생성할 수 없습니다.",
+        message: "일정을 추출할 수 없습니다.",
       });
     }
 
@@ -52,47 +51,16 @@ const createScheduleFromChat = async (req, res) => {
       });
     }
 
-    // 5) 기본 캘린더 조회 또는 생성
-    let calendar = await Calendar.findOne({ where: { userID } });
-
-    if (!calendar) {
-      calendar = await Calendar.create({
-        userID,
-        title: "기본 캘린더",
-        color: "#3B82F6",
-      });
-    }
-
-    // 6) 각각의 일정 저장
-    const createdSchedules = [];
-
-    for (const s of validSchedules) {
-      const created = await Schedule.create({
-        calendarID: calendar.calendarID,
-        title: s.title,
-        description: s.description || null,
-        startDate: s.startDate,
-        endDate: s.endDate || s.startDate,
-        startTime: s.startTime || null,
-        endTime: s.endTime || null,
-        isAllDay: s.isAllDay ?? false,
-        type: s.type || "schedule",
-        location: s.location || null,
-        color: s.color || null, // Add color field
-        courseName: s.courseName || null, // Add courseName field
-    });
-
-
-      createdSchedules.push(created);
-    }
-
-    return res.status(201).json({
+    // ✅ DB 저장 부분 제거 - 추출된 일정만 반환
+    // 사용자가 선택한 일정은 프론트엔드에서 addPrimaryScheduleItem()으로 저장
+    return res.status(200).json({
       success: true,
-      message: `${createdSchedules.length}개의 일정이 생성되었습니다.`,
-      schedules: createdSchedules,
+      message: `${validSchedules.length}개의 일정이 추출되었습니다.`,
+      schedules: validSchedules,
     });
+
   } catch (err) {
-    console.error("Create Schedule Error:", err);
+    console.error("Extract Schedule Error:", err);
 
     // FastAPI가 400 보내는 경우
     if (err.response?.status === 400) {
@@ -105,11 +73,12 @@ const createScheduleFromChat = async (req, res) => {
     // 기타 내부 오류
     return res.status(500).json({
       success: false,
-      message: "자동 일정 생성 중 오류 발생",
+      message: "일정 추출 중 오류 발생",
       error: err.message,
     });
   }
 };
+
 
 // ======================================================
 //               PRIMARY CALENDAR

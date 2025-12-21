@@ -9,8 +9,11 @@ module.exports = (sequelize) => {
       name: { type: DataTypes.STRING(50), allowNull: true },
       password_hash: { type: DataTypes.STRING(255), allowNull: false },
       department: { type: DataTypes.STRING(80), allowNull: true },
-      grade: { type: DataTypes.INTEGER, allowNull: true },
-      additional_info: { type: DataTypes.TEXT, allowNull: true },  
+      campus: { type: DataTypes.STRING(50), allowNull: true },  // 추가: 캠퍼스 정보
+      admissionYear: { type: DataTypes.INTEGER, allowNull: true },  // 추가: 입학년도
+      grade: { type: DataTypes.INTEGER, allowNull: true },  // 현재 학년
+      semester: { type: DataTypes.INTEGER, allowNull: true },  // 추가: 현재 학기 (1 or 2)
+      additional_info: { type: DataTypes.TEXT, allowNull: true },
     },
     {
       tableName: "USER",
@@ -35,7 +38,7 @@ module.exports = (sequelize) => {
     await Calendar.create({
       userID: user.userID,
       title: "기본 캘린더",
-  });
+    });
 
 
     console.log(`Default calendar & timetable created for user: ${user.userID}`);
