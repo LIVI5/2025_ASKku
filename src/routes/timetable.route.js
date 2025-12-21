@@ -1,25 +1,33 @@
 const router = require("express").Router();
 const auth = require("../middleware/auth.middleware");
+
 const {
-  getMyTimetable,
+  getPrimaryTimetable,
+  createTimetable,
+  getMyTimetables,
+  updateTimetable,
+  deleteTimetable,
+  addPrimaryTimetableItem,
   addTimetableItem,
   updateTimetableItem,
-  deleteTimetableItem
+  deleteTimetableItem,
 } = require("../controllers/timetable.controller");
 
+// Get primary timetable (or create default) - FOR FRONTEND EASE-OF-USE
+router.get("/primary", auth, getPrimaryTimetable);
 
-// ---- TIMETABLE & ITEMS ----
+// Add item to primary timetable
+router.post("/primary/items", auth, addPrimaryTimetableItem);
 
-// 내 시간표 조회 (수업 포함)
-router.get("/my", auth, getMyTimetable);
+// Full CRUD for Timetables
+router.post("/", auth, createTimetable);
+router.get("/", auth, getMyTimetables);
+router.put("/:timetableID", auth, updateTimetable);
+router.delete("/:timetableID", auth, deleteTimetable);
 
-// 시간표에 수업(과목) 추가
-router.post("/my/items", auth, addTimetableItem);
-
-// 수업(과목) 수정
-router.put("/my/items/:itemID", auth, updateTimetableItem);
-
-// 수업(과목) 삭제
-router.delete("/my/items/:itemID", auth, deleteTimetableItem);
+// Full CRUD for Timetable Items
+router.post("/:timetableID/items", auth, addTimetableItem);
+router.put("/items/:itemID", auth, updateTimetableItem);
+router.delete("/items/:itemID", auth, deleteTimetableItem);
 
 module.exports = router;

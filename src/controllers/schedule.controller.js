@@ -78,6 +78,8 @@ const createScheduleFromChat = async (req, res) => {
         isAllDay: s.isAllDay ?? false,
         type: s.type || "schedule",
         location: s.location || null,
+        color: s.color || null, // Add color field
+        courseName: s.courseName || null, // Add courseName field
     });
 
 
@@ -110,8 +112,64 @@ const createScheduleFromChat = async (req, res) => {
 };
 
 // ======================================================
+//               PRIMARY CALENDAR
+// ======================================================
+
+// Get user's primary calendar (first one), or create a default one if none exist.
+const getPrimaryCalendar = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    let calendar = await Calendar.findOne({
+      where: { userID },
+      order: [["createdAt", "ASC"]],
+      include: [{ model: Schedule, as: "Schedules" }], // Corrected alias
+    });
+
+    if (!calendar) {
+      calendar = await Calendar.create({
+        userID,
+        title: "기본 캘린더",
+        color: "#3B82F6", // Default color
+      });
+      // Re-query to include schedules array
+      calendar = await Calendar.findByPk(calendar.calendarID, {
+        include: [{ model: Schedule, as: 'Schedules' }] // Corrected alias
+      });
+    }
+
+    return res.json({ success: true, calendar });
+  } catch (err) {
+    console.error("Get Primary Calendar Error:", err);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
+// ======================================================
 //                   CALENDAR CRUD
 // ======================================================
+
+const createCalendar = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const { title, color } = req.body;
+
+    const newCalendar = await Calendar.create({
+      userID,
+      title: title || "새 캘린더",
+      color: color || "#3B82F6", // Default color
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "캘린더가 생성되었습니다.",
+      calendar: newCalendar,
+    });
+  } catch (err) {
+    console.error("Calendar Create Error:", err);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
 
 // 내 캘린더 목록 조회
 const getMyCalendars = async (req, res) => {
@@ -171,9 +229,56 @@ const updateCalendar = async (req, res) => {
   }
 };
 
+// 캘린더 삭제
+const deleteCalendar = async (req, res) => {
+  try {
+    const { calendarID } = req.params;
+    const userID = req.user.userID;
+
+    const calendar = await Calendar.findOne({ where: { calendarID, userID } });
+    if (!calendar)
+      return res.status(404).json({ success: false, message: "삭제할 캘린더가 없습니다." });
+
+    await calendar.destroy(); // CASCADE option in model handles deleting schedules
+
+    return res.json({ success: true, message: "캘린더가 삭제되었습니다." });
+  } catch (err) {
+    console.error("Delete Calendar Error:", err);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
+
 // ======================================================
 //                   SCHEDULE CRUD
 // ======================================================
+
+// Add an item to the primary calendar
+const addPrimaryScheduleItem = async (req, res, next) => {
+  try {
+    const userID = req.user.userID;
+
+    // Find the primary calendar (or create one)
+    let calendar = await Calendar.findOne({
+      where: { userID },
+      order: [["createdAt", "ASC"]],
+    });
+
+    if (!calendar) {
+      calendar = await Calendar.create({
+        userID,
+        title: "기본 캘린더",
+      });
+    }
+
+    // Set the calendarID in the request params and pass to the existing handler
+    req.params.calendarID = calendar.calendarID;
+    return addScheduleItem(req, res);
+
+  } catch (err) {
+    console.error("Add Primary Schedule Item Error:", err);
+    return res.status(500).json({ success: false, message: "서버 오류" });
+  }
+};
 
 // 일정 추가
 const addScheduleItem = async (req, res) => {
@@ -189,6 +294,8 @@ const addScheduleItem = async (req, res) => {
       isAllDay,
       type,
       location,
+      color, // Add color field
+      courseName, // Add courseName field
     } = req.body;
 
     // 본인 캘린더인지 확인
@@ -212,6 +319,8 @@ const addScheduleItem = async (req, res) => {
       isAllDay,
       type,
       location,
+      color, // Pass color to create
+      courseName, // Pass courseName to create
     });
 
     return res.status(201).json({
@@ -241,6 +350,8 @@ const updateScheduleItem = async (req, res) => {
       isAllDay,
       type,
       location,
+      color, // Add color field
+      courseName, // Add courseName field
     } = req.body;
 
     const schedule = await Schedule.findByPk(itemID);
@@ -259,6 +370,8 @@ const updateScheduleItem = async (req, res) => {
     schedule.isAllDay = isAllDay ?? schedule.isAllDay;
     schedule.type = type ?? schedule.type;
     schedule.location = location ?? schedule.location;
+    schedule.color = color ?? schedule.color; // Update color field
+    schedule.courseName = courseName ?? schedule.courseName; // Update courseName field
 
     await schedule.save();
 
@@ -312,4 +425,8 @@ module.exports = {
   addScheduleItem,
   updateScheduleItem,
   deleteScheduleItem,
+  getPrimaryCalendar,
+  addPrimaryScheduleItem,
+  createCalendar,
+  deleteCalendar,
 };
