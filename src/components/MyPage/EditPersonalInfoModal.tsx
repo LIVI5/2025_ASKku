@@ -120,9 +120,8 @@ export default function EditPersonalInfoModal({ isOpen, onClose }: EditPersonalI
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // As per requirement 4, there is no API to save, so just close the modal.
-        // In a real scenario, validation and an API call would go here.
-        // For demonstration purposes, let's add a basic password validation if user typed in new passwords
+
+        // 비밀번호 검증 (입력된 경우만)
         if (formData.password || formData.confirmPassword) {
             const newErrors: Record<string, string> = {}
             if (formData.password.length > 0 && formData.password.length < 8) {
@@ -139,7 +138,43 @@ export default function EditPersonalInfoModal({ isOpen, onClose }: EditPersonalI
             }
         }
 
+        setLoading(true)
+        setErrors({})
+
+        try {
+            // API 호출 데이터 준비
+            const updateData: any = {
+                name: formData.name,
+                department: formData.department,
+                campus: formData.campus,
+                admissionYear: formData.admissionYear ? parseInt(formData.admissionYear) : undefined,
+                grade: formData.currentGrade,
+                semester: formData.currentSemester,
+            }
+
+            // 비밀번호가 입력된 경우만 포함
+            if (formData.password && formData.password.length > 0) {
+                updateData.password = formData.password
+            }
+
+            // updateProfile import 필요
+            const { updateProfile } = await import('../../services/authService')
+            const response = await updateProfile(updateData)
+
+            if (response.success) {
+                alert(response.message || '개인정보가 성공적으로 수정되었습니다.')
+                // 사용자 컨텍스트 새로고침
+                await fetchUser()
                 onClose()
+            } else {
+                setErrors({ submit: response.message || '개인정보 수정에 실패했습니다.' })
+            }
+        } catch (error) {
+            console.error('Profile update error:', error)
+            setErrors({ submit: '개인정보 수정 중 오류가 발생했습니다.' })
+        } finally {
+            setLoading(false)
+        }
     }
 
     return ReactDOM.createPortal(
@@ -151,6 +186,13 @@ export default function EditPersonalInfoModal({ isOpen, onClose }: EditPersonalI
                     <div className="text-center py-8">로딩 중...</div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* 에러 메시지 */}
+                        {errors.submit && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p className="text-sm text-red-600">{errors.submit}</p>
+                            </div>
+                        )}
+
                         {/* 이름 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-1.5">이름</label>

@@ -12,9 +12,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         lastName: '',
         firstName: '',
         email: '',
-        admissionYear: '',
-        currentGrade: 1,
-        currentSemester: 1,
+        admissionYear: 1,
+        grade: 1,
+        semester: 1,
         department: '',
         campus: '',
         password: '',
@@ -34,7 +34,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         '글로벌경영학과',
         '기타',
     ]
-    
+
     const campuses = [
         '인문사회캠퍼스',
         '자연과학캠퍼스',
@@ -98,8 +98,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     firstName: formData.firstName,
                     email: formData.email,
                     admissionYear: formData.admissionYear,
-                    currentGrade: formData.currentGrade,
-                    currentSemester: formData.currentSemester,
+                    grade: formData.grade,
+                    semester: formData.semester,
                     department: formData.department,
                     campus: formData.campus,
                     password: formData.password
@@ -226,8 +226,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-1.5">현재 학년</label>
                         <select
-                            name="currentGrade"
-                            value={formData.currentGrade}
+                            name="grade"
+                            value={formData.grade}
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
                         >
@@ -241,8 +241,8 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-1.5">학기</label>
                         <select
-                            name="currentSemester"
-                            value={formData.currentSemester}
+                            name="semester"
+                            value={formData.semester}
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-askku-primary focus:border-transparent bg-white text-sm"
                         >

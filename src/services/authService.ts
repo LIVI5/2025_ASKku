@@ -19,8 +19,8 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
             campus: data.campus,
             department: data.department,
             admissionYear: data.admissionYear,
-            grade: data.currentGrade,
-            semester: data.currentSemester,
+            grade: data.grade,
+            semester: data.semester,
             additional_info: null
         });
 
@@ -99,5 +99,71 @@ export const isAuthenticated = async (): Promise<boolean> => {
 
     } catch {
         return false;
+    }
+};
+
+// 비밀번호 확인
+export const verifyPassword = async (password: string): Promise<AuthResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        return {
+            success: false,
+            message: '로그인이 필요합니다.'
+        };
+    }
+
+    try {
+        const res = await api.post('/api/users/verify-password',
+            { password },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        return {
+            success: true,
+            message: res.data.message || '비밀번호가 확인되었습니다.'
+        };
+
+    } catch (error: any) {
+        return {
+            success: false,
+            message: error.response?.data?.message || '비밀번호가 일치하지 않습니다.'
+        };
+    }
+};
+
+// 개인정보 수정
+export const updateProfile = async (profileData: {
+    name?: string;
+    department?: string;
+    campus?: string;
+    admissionYear?: number;
+    grade?: number;
+    semester?: number;
+    password?: string;
+}): Promise<AuthResponse> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        return {
+            success: false,
+            message: '로그인이 필요합니다.'
+        };
+    }
+
+    try {
+        const res = await api.put('/api/users/profile', profileData, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        return {
+            success: true,
+            message: res.data.message || '개인정보가 수정되었습니다.',
+            user: res.data.user
+        };
+
+    } catch (error: any) {
+        return {
+            success: false,
+            message: error.response?.data?.message || '개인정보 수정 실패'
+        };
     }
 };

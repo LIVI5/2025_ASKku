@@ -99,6 +99,7 @@ export type ExtractedSchedule = {
     description?: string;
     type?: string;
     location?: string;
+    color?: string; // Optional color for extracted schedules
 };
 
 export interface Timetable {

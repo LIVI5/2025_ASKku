@@ -18,7 +18,7 @@ export const getUserByEmail = (email: string): User | null => {
 
 export const getUserById = (id: string): User | null => {
     const users = getAllUsers()
-    return users.find(user => user.id === id) || null
+    return users.find(user => user.userID === id) || null
 }
 
 export const getAllUsers = (): User[] => {

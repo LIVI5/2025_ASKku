@@ -1,4 +1,11 @@
-// Helper to format time (HH:mm) - Duplicated for now, could be moved to utils
+import { Schedule } from '../../types'
+
+interface ScheduleDetailModalProps {
+    isOpen: boolean
+    onClose: () => void
+    schedule: Schedule | null
+}
+
 const formatTime = (timeStr: string | undefined): string => {
     if (!timeStr) return '';
     if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
@@ -56,18 +63,18 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                 timeInfo += `- 종료 시간: ${endTime}\n`;
             }
         } else { // Multi-day schedule - description is not date-specific here
-             // Time info for multi-day schedules is handled in CalendarView description for start/end days
-             // For the full detail modal, we might want to show the full time range if it's not all-day
-             if (startTime && endTime) {
+            // Time info for multi-day schedules is handled in CalendarView description for start/end days
+            // For the full detail modal, we might want to show the full time range if it's not all-day
+            if (startTime && endTime) {
                 timeInfo += `- 시작 시간: ${startTime}\n- 종료 시간: ${endTime}\n`;
-             } else if (startTime) {
+            } else if (startTime) {
                 timeInfo += `- 시작 시간: ${startTime}\n`;
-             } else if (endTime) {
+            } else if (endTime) {
                 timeInfo += `- 종료 시간: ${endTime}\n`;
-             }
+            }
         }
     }
-    
+
     displayDescription = timeInfo + displayDescription;
 
 

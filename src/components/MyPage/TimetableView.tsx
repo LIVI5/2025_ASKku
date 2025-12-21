@@ -19,13 +19,13 @@ const getTimeInMinutes = (time: string): number => {
 
 
 export default function TimetableView({ onAddClick, items = [], onDeleteItem }: TimetableViewProps) {
-    
+
     // --- Dynamic Timetable Hours Logic ---
     const TIMETABLE_START_HOUR = 9; // 09:00
 
     // Check if there are any classes ending after 6 PM
     const hasLateClasses = items.some(item => getTimeInMinutes(item.endTime) > 18 * 60);
-    
+
     // Set end hour to 10 PM if there are late classes, otherwise 6 PM
     const TIMETABLE_END_HOUR = hasLateClasses ? 21 : 18;
 
@@ -35,20 +35,20 @@ export default function TimetableView({ onAddClick, items = [], onDeleteItem }: 
     });
     // --- End Dynamic Logic ---
 
-    const calculateEventStyles = (item: TimetableItem) => {
+    const calculateEventStyles = (item: TimetableItem): React.CSSProperties => {
         const startMinutes = getTimeInMinutes(item.startTime);
         const endMinutes = getTimeInMinutes(item.endTime);
         const durationMinutes = endMinutes - startMinutes;
-    
+
         const timetableStartMinutes = TIMETABLE_START_HOUR * MINUTES_IN_HOUR;
-    
+
         const top = ((startMinutes - timetableStartMinutes) / MINUTES_IN_HOUR) * HOUR_HEIGHT;
         const height = (durationMinutes / MINUTES_IN_HOUR) * HOUR_HEIGHT;
-    
+
         return {
             top: `${top}px`,
             height: `${height}px`,
-            position: 'absolute',
+            position: 'absolute' as const,
             left: '0',
             right: '0',
         };

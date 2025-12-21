@@ -10,13 +10,13 @@ import { getTimetable, deleteTimetableItem } from '../../services/myPageService'
 
 export default function MyPage() {
     const [view, setView] = useState<'calendar' | 'timetable'>('calendar')
-    
+
     // Modal states
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
     const [isEditChatSettingsModalOpen, setIsEditChatSettingsModalOpen] = useState(false)
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
-    
+
     // Schedule-related state
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
     const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0)
@@ -41,9 +41,13 @@ export default function MyPage() {
     };
 
     // Fetch timetable data when the view is switched to 'timetable'
+    // Fetch calendar data when the view is switched to 'calendar'
     useEffect(() => {
         if (view === 'timetable') {
             fetchTimetableData();
+        } else if (view === 'calendar') {
+            // Refresh calendar data to ensure it reflects any external changes (e.g., direct DB deletions)
+            handleScheduleRefresh();
         }
     }, [view]);
 
@@ -61,8 +65,8 @@ export default function MyPage() {
         setIsDetailModalOpen(false)
         setSelectedSchedule(null)
     }
-    
-    const handleAddItem = (newItem: TimetableItem) => {
+
+    const handleAddItem = () => {
         // Re-fetch the entire list to ensure consistency and avoid subtle state bugs
         fetchTimetableData();
     };
@@ -90,21 +94,21 @@ export default function MyPage() {
 
         if (view === 'timetable') {
             if (isTimetableLoading) {
-                 return (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-center items-center" style={{minHeight: '400px'}}>
+                return (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-center items-center" style={{ minHeight: '400px' }}>
                         <p className="text-gray-500">시간표를 불러오는 중입니다...</p>
                     </div>
                 );
             }
             if (timetableError) {
                 return (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-center items-center" style={{minHeight: '400px'}}>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-center items-center" style={{ minHeight: '400px' }}>
                         <p className="text-red-500">{timetableError}</p>
                     </div>
                 );
             }
             return (
-                <TimetableView 
+                <TimetableView
                     items={timetableItems}
                     onAddClick={() => setIsTimetableModalOpen(true)}
                     onDeleteItem={handleDeleteItem}

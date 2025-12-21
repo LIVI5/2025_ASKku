@@ -336,7 +336,7 @@ export default function ChatPage() {
         } else {
             alert('일정 추가에 실패했습니다. 다시 시도해주세요.')
         }
-        
+
         setIsScheduleLoading(false); // End loading
         setIsScheduleModalOpen(false)
         setScheduleCandidates([])
@@ -345,8 +345,8 @@ export default function ChatPage() {
     // ---------------------------
     // 북마크 삭제
     // ---------------------------
-    const handleRemoveBookmark = (id: string) => {
-        removeBookmark(id)
+    const handleRemoveBookmark = async (id: string) => {
+        await removeBookmark(id)  // ✅ await 추가
         setBookmarks(getBookmarks())
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])
