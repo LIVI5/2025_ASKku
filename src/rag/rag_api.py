@@ -161,6 +161,11 @@ def verify_user_token(authorization: str) -> int:
 class ChatRequest(BaseModel):
     message: str
     history: List[Dict] = []
+    message: str
+    history: List[Dict] = []
+    user_info: Dict
+    timetable: List[Dict] = []
+    calendar: List[Dict] = []
 
 
 class TranslateRequest(BaseModel):
@@ -224,7 +229,8 @@ async def chat(
                 question=req.message,
                 history=req.history,
                 user_info=user_info,
-                timetable=timetable
+                timetable=timetable,
+                calendar=req.calendar
             ):
                 # SSE 형식으로 전송
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
