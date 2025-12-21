@@ -64,12 +64,16 @@ if (User && Calendar) {
 // CALENDAR → CALENDAR_ITEM (1:N)
 if (Calendar && Schedule) {
   Calendar.hasMany(Schedule, {
+    as: "schedules",
     foreignKey: "calendarID",
-    onDelete: "CASCADE"
+    sourceKey: "calendarID",
+    onDelete: "CASCADE",
   });
 
   Schedule.belongsTo(Calendar, {
-    foreignKey: "calendarID"
+    as: "calendars",
+    foreignKey: "calendarID",
+    targetKey: "calendarID",
   });
 }
 

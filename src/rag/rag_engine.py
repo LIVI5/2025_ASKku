@@ -78,24 +78,65 @@ def extract_sources(docs: List) -> List[Dict]:
     
     return sources
 
+def format_user_info(user_info: Dict) -> str:
+    lines = ["[사용자 정보]"]
+    for key, value in user_info.items():
+        if value is None or value == "":
+            continue
+        lines.append(f"- {key}: {value}")
+    return "\n".join(lines)
 
-def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
-    """시스템 프롬프트 생성"""
-    
-    base_info = f"""[사용자 정보]
-- 이름: {user_info.get('name', '미제공')}
-- 학과: {user_info.get('department', '미제공')}
-- 학년: {user_info.get('grade', '미제공')}"""
-    
-    if user_info.get('additional_info'):
-        base_info += f"\n- 추가정보: {user_info['additional_info']}"
-    
-    timetable_info = f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
-    
+
+def format_calendar(calendar: List[Dict]) -> str:
+    if not calendar:
+        return "등록된 캘린더 일정 없음"
+
+    lines = []
+    for ev in calendar:
+        lines.append(
+            f"- {ev.get('title', '일정')} "
+            f"({ev.get('startDate')} {ev.get('startTime','')}"
+            f" ~ {ev.get('endDate')} {ev.get('endTime','')})"
+        )
+    return "\n".join(lines)
+
+
+def create_system_prompt(
+    user_info: Dict,
+    timetable: List[Dict],
+    calendar: List[Dict]
+) -> str:
+
+    user_info_block = format_user_info(user_info)
+    timetable_info = (
+        f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
+        if timetable else
+        "\n\n[사용자 시간표]\n등록된 시간표 없음"
+    )
+
+    calendar_info = (
+        f"\n\n[사용자 캘린더 일정]\n{format_calendar(calendar)}"
+        if calendar else
+        "\n\n[사용자 캘린더 일정]\n등록된 캘린더 일정 없음"
+    )
+
     system_prompt = f"""너는 성균관대학교 학생을 돕는 AI 어시스턴트야.
 
-{base_info}
+{user_info_block}
 {timetable_info}
+{calendar_info}
+
+[매우 중요한 판단 규칙]
+일정, 우선순위, "가장 먼저", "다음에 해야 할 일"과 관련된 질문에서는  
+반드시 아래 **우선순위 기준**을 지켜 판단해야 한다.
+
+1 사용자 캘린더 일정  
+2 사용자 시간표  
+3 참고 문서에 명시된 공식 일정  
+4 이전 대화(history)는 맥락 이해용으로만 사용
+
+! user_info / calendar / timetable에 없는 정보는
+임의로 추측하지 말 것
 
 [답변 규칙]
 1. 제공된 참고 문서에 명확한 정보가 있으면 그것을 기반으로 답변
@@ -112,15 +153,17 @@ def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
 [언어]
 사용자가 한국어로 물으면 한국어로, 영어로 물으면 영어로 답변
 """
-    
+
     return system_prompt
+
 
 
 async def generate_rag_response_stream(
     question: str,
     history: List[Dict],
     user_info: Dict,
-    timetable: List[Dict]
+    timetable: List[Dict],
+    calendar: List[Dict] | None = None
 ) -> AsyncGenerator[Dict, None]:
     """
     스트리밍 RAG 응답 생성
@@ -151,8 +194,12 @@ async def generate_rag_response_stream(
         context_text = format_docs_with_metadata(docs)
         
         # 4. 시스템 프롬프트 생성
-        system_msg = create_system_prompt(user_info, timetable)
-        
+        system_msg = create_system_prompt(
+            user_info=user_info,
+            timetable=timetable,
+            calendar=calendar or []
+        )
+            
         # 5. 메시지 구성
         messages = [SystemMessage(content=system_msg)]
         
