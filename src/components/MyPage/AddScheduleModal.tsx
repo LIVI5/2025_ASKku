@@ -10,7 +10,6 @@ interface AddScheduleModalProps {
 
 export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddScheduleModalProps) {
     const [title, setTitle] = useState('')
-    const [date, setDate] = useState('')
     const [description, setDescription] = useState('')
     const [type, setType] = useState<Schedule['type']>('personal')
     const [color, setColor] = useState('#3B82F6')
@@ -19,9 +18,32 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
     const [isTimetableLoading, setIsTimetableLoading] = useState(false)
     const [selectedSubject, setSelectedSubject] = useState('')
 
+    // New states for duration mode
+    const [isDurationMode, setIsDurationMode] = useState(false)
+    const [singleDate, setSingleDate] = useState('') // Used when isDurationMode is false
+    const [multiStartDate, setMultiStartDate] = useState('') // Used when isDurationMode is true
+    const [multiEndDate, setMultiEndDate] = useState('') // Used when isDurationMode is true
+
     // Add loading and error states for API calls
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Initialize dates when modal opens or duration mode changes
+    useEffect(() => {
+        if (isOpen) {
+            const today = new Date().toISOString().split('T')[0];
+            if (!isDurationMode) {
+                setSingleDate(today);
+                setMultiStartDate('');
+                setMultiEndDate('');
+            } else {
+                setMultiStartDate(today);
+                setMultiEndDate(today);
+                setSingleDate('');
+            }
+        }
+    }, [isOpen, isDurationMode]);
+
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -46,38 +68,67 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
 
     const resetState = () => {
         setTitle('')
-        setDate('')
         setDescription('')
         setType('personal')
         setColor('#3B82F6')
         setSelectedSubject('')
         setTimetableItems([])
         setError(null); // Clear error on reset
+
+        // Reset duration mode states
+        setIsDurationMode(false);
+        const today = new Date().toISOString().split('T')[0];
+        setSingleDate(today);
+        setMultiStartDate('');
+        setMultiEndDate('');
     }
 
-    const handleSubmit = async (e: React.FormEvent) => { // Make handleSubmit async
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null); // Clear previous errors
-        if (!title || !date) {
-            setError('제목과 날짜를 모두 입력해주세요.');
+
+        let finalStartDate = '';
+        let finalEndDate = '';
+
+        if (!title) {
+            setError('제목을 입력해주세요.');
             return;
+        }
+
+        if (!isDurationMode) {
+            if (!singleDate) {
+                setError('날짜를 입력해주세요.');
+                return;
+            }
+            finalStartDate = singleDate;
+            finalEndDate = singleDate;
+        } else {
+            if (!multiStartDate || !multiEndDate) {
+                setError('시작일과 마감일을 모두 입력해주세요.');
+                return;
+            }
+            if (new Date(multiStartDate) > new Date(multiEndDate)) {
+                setError('마감일은 시작일보다 빠를 수 없습니다.');
+                return;
+            }
+            finalStartDate = multiStartDate;
+            finalEndDate = multiEndDate;
         }
 
         setLoading(true); // Start loading
 
         const scheduleData: Omit<Schedule, 'itemID'> = {
             title,
-            date, // This will be used as startDate and endDate by the service
             description,
             type,
             color,
-            // The backend's default for isAllDay is `false`.
-            // If allDay is intended to be true by default for new schedules, it should be set here.
-            // For now, it's omitted and backend default will apply unless the UI provides a control.
+            startDate: finalStartDate,
+            endDate: finalEndDate,
+            date: finalStartDate, // 'date' is still required by Schedule type, using startDate as fallback
         }
 
         if (type === 'subject') {
-            (scheduleData as any).courseName = selectedSubject // Changed to courseName
+            (scheduleData as any).courseName = selectedSubject
         }
 
         try {
@@ -111,15 +162,38 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">날짜</label>
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="block text-sm font-medium text-gray-700">
+                                {isDurationMode ? '시작일' : '날짜'}
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setIsDurationMode(prev => !prev)}
+                                className="text-xs text-askku-primary hover:text-askku-secondary transition-colors"
+                            >
+                                {isDurationMode ? '단일 날짜로 변경' : '기간 지정'}
+                            </button>
+                        </div>
                         <input
                             type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
+                            value={isDurationMode ? multiStartDate : singleDate}
+                            onChange={(e) => isDurationMode ? setMultiStartDate(e.target.value) : setSingleDate(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
                             required
                         />
                     </div>
+                    {isDurationMode && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">마감일</label>
+                            <input
+                                type="date"
+                                value={multiEndDate}
+                                onChange={(e) => setMultiEndDate(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-askku-primary/50"
+                                required
+                            />
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
                         <textarea
@@ -225,4 +299,3 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         </div>
     )
 }
-
