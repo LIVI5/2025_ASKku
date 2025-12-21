@@ -371,6 +371,16 @@ export const addBookmark = async (
             timestamp: res.data.bookmark.createdAt || new Date().toISOString()
         }
 
+        // 세션에 bookmarkID 저장
+        const session = getCurrentSession()
+        if (session) {
+            const msg = session.messages.find(m => m.id === messageId)
+            if (msg) {
+                msg.bookmarkID = res.data.bookmark.bookmarkID
+                saveSession(session)
+            }
+        }
+
         return newBookmark
     } catch (err) {
         console.error('Bookmark API Error:', err)
@@ -380,37 +390,27 @@ export const addBookmark = async (
 
 /**
  * 북마크 삭제
- * - DB에서 삭제 + 세션 상태 동기화
+ * - 세션의 bookmarkID로 DB에서 삭제
+ * - 세션의 isBookmarked 및 bookmarkID 초기화
  */
-export const removeBookmark = async (bookmarkId: string): Promise<void> => {
-    try {
-        // bookmarkId가 messageId일 수 있으므로, DB ID를 찾아야 함
-        // 하지만 API 호출 전에 bookmarks 목록이 필요함
-        const bookmarks = await getBookmarks()
-        const bookmark = bookmarks.find(b =>
-            b.id === bookmarkId || b.bookmarkID?.toString() === bookmarkId
-        )
+export const removeBookmark = async (messageId: string): Promise<void> => {
+    const session = getCurrentSession()
+    if (!session) return
 
-        if (!bookmark?.bookmarkID) {
-            console.warn('Bookmark not found or missing bookmarkID')
-            return
+    const msg = session.messages.find(m => m.id === messageId)
+    if (!msg) return
+
+    // bookmarkID로 삭제
+    const bookmarkIdToDelete = msg.bookmarkID
+    if (bookmarkIdToDelete) {
+        try {
+            await api.delete(`/api/bookmarks/${bookmarkIdToDelete}`)
+            msg.isBookmarked = false
+            msg.bookmarkID = undefined  // bookmarkID 제거
+            saveSession(session)
+        } catch (err) {
+            console.error('Remove Bookmark Error:', err)
         }
-
-        // DB에서 삭제
-        await api.delete(`/api/bookmarks/${bookmark.bookmarkID}`)
-
-        // 세션에서 북마크 플래그 제거
-        const session = getCurrentSession()
-        if (session) {
-            const msg = session.messages.find(m => m.id === bookmarkId)
-            if (msg) {
-                msg.isBookmarked = false
-                saveSession(session)
-            }
-        }
-    } catch (err) {
-        console.error('Remove Bookmark Error:', err)
-        throw err
     }
 }
 
@@ -418,7 +418,7 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
  * 메시지 북마크 토글
  * - assistant 메시지만 북마크 가능
  * - user 질문 + assistant 답변 쌍으로 저장
- * - DB에서 북마크 상태를 확인하여 세션과 동기화
+ * - 세션의 bookmarkID 기반으로 토글
  */
 export const toggleMessageBookmark = async (messageId: string): Promise<void> => {
     const session = getCurrentSession()
@@ -427,22 +427,23 @@ export const toggleMessageBookmark = async (messageId: string): Promise<void> =>
     const msg = session.messages.find(m => m.id === messageId)
     if (!msg || msg.role !== "assistant") return
 
-    // DB에서 현재 북마크 상태 확인
-    const bookmarks = await getBookmarks()
-    const existingBookmark = bookmarks.find(b => b.id === messageId)
-
     const idx = session.messages.findIndex(m => m.id === messageId)
     const userMsg = session.messages[idx - 1]
 
-    if (existingBookmark) {
+    // 세션의 bookmarkID 확인
+    if (msg.bookmarkID) {
         // 이미 북마크되어 있으면 삭제
         await removeBookmark(messageId)
         msg.isBookmarked = false
+        msg.bookmarkID = undefined
     } else {
         // 북마크되어 있지 않으면 추가
         if (userMsg) {
-            await addBookmark(messageId, userMsg.content, msg.content)
-            msg.isBookmarked = true
+            const bookmark = await addBookmark(messageId, userMsg.content, msg.content)
+            if (bookmark) {
+                msg.isBookmarked = true
+                msg.bookmarkID = bookmark.bookmarkID
+            }
         }
     }
 
