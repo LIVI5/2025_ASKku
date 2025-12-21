@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { getUserInfo } from '../services/authService';
-import { clearSession } from '../services/chatService'; // Import clearSession
+import { clearSession, clearAllBookmarks } from '../services/chatService'; // Import clearSession and clearAllBookmarks
 
 interface UserContextType {
     user: User | null;
@@ -42,8 +42,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     useEffect(() => {
         const currentUserId = user?.userID || null;
         if (currentUserId !== previousUserId.current) {
-            console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session.`);
+            console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session and bookmarks.`);
             clearSession();
+            clearAllBookmarks(); // Also clear locally cached bookmarks
             previousUserId.current = currentUserId;
         }
     }, [user]); // Rerun when the user object changes
