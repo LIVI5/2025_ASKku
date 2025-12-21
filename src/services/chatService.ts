@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify"
-import { ChatMessage, ChatSession, Bookmark, ExtractedSchedule } from '../types'
+import { ChatMessage, ChatSession, Bookmark, ExtractedSchedule, User, Schedule, Timetable } from '../types'
 import api from '../api/axiosInstance'
 
 const CHAT_SESSION_KEY = 'askku_chat_session'
@@ -106,6 +106,9 @@ const cleanMarkdown = (text: string): string => {
 
 export const generateAIResponseStream = async (
     userMessage: string,
+    user: User | null,
+    userSchedules: Schedule[],
+    userTimetable: Timetable | null,
     onChunk: (chunk: string) => void,
     onSources?: (sources: any[]) => void,
     onComplete?: () => void,
@@ -125,9 +128,6 @@ export const generateAIResponseStream = async (
         const baseURL = 'http://localhost:8001'
         const url = `${baseURL}/chat`
 
-        console.log('[DEBUG] Fetching:', url)
-        console.log('[DEBUG] Payload:', { message: userMessage, history: recentHistory })
-
         // JWT 토큰 가져오기
         const token = localStorage.getItem('token')
         if (!token) {
@@ -144,12 +144,26 @@ export const generateAIResponseStream = async (
             body: JSON.stringify({
                 message: userMessage,
                 history: recentHistory,
-                user_info: {
-                    name: '사용자',
+                user_info: user ? {
+                    name: user.name,
+                    department: user.department,
+                    campus: user.campus,
+                    admissionYear: user.admissionYear,
+                    grade: user.grade,
+                    semester: user.semester,
+                    additional_info: user.additional_info || null // additional_info can be null
+                } : {
+                    // Fallback for unauthenticated user - though user implies this won't happen for core info
+                    name: '미제공',
                     department: '미제공',
-                    grade: '미제공'
+                    campus: '미제공',
+                    admissionYear: null,
+                    grade: null,
+                    semester: null,
+                    additional_info: null
                 },
-                timetable: []
+                schedules: userSchedules, // Pass the schedules array
+                timetable: userTimetable ? userTimetable.items : [] // Pass timetable items
             })
         })
 
@@ -222,6 +236,9 @@ export const generateAIResponse = async (
 
         generateAIResponseStream(
             userMessage,
+            null, // User data not available in this simplified call
+            [],   // Schedules data not available
+            null, // Timetable data not available
             (chunk) => {
                 fullText += chunk
             },
