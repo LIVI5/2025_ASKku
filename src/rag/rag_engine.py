@@ -107,41 +107,17 @@ def format_calendar(calendar: List[Dict]) -> str:
 def create_system_prompt(
     user_info: Dict,
     timetable: List[Dict],
-    calendar: List[Dict]
+    calendar: Optional[List[Dict]] = None
 ) -> str:
+    """시스템 프롬프트 생성"""
 
     user_info_block = format_user_info(user_info)
-    timetable_info = (
-        f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
-        if timetable else
-        "\n\n[사용자 시간표]\n등록된 시간표 없음"
-    )
 
-    calendar_info = (
-        f"\n\n[사용자 캘린더 일정]\n{format_calendar(calendar)}"
-        if calendar else
-        "\n\n[사용자 캘린더 일정]\n등록된 캘린더 일정 없음"
-    )
-
-def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
-    """시스템 프롬프트 생성 - DB에서 가져온 사용자 정보 활용"""
-    
-    # 기본 정보
-    base_info = f"""[사용자 정보]
-- 이름: {user_info.get('name', '미제공')}
-- 캠퍼스: {user_info.get('campus', '미제공')}
-- 학과: {user_info.get('department', '미제공')}
-- 학년: {user_info.get('grade', '미제공')}학년
-- 학기: {user_info.get('semester', '미제공')}학기
-- 입학년도: {user_info.get('admissionYear', '미제공')}년"""
-    
-    # 추가 정보가 있으면 포함
-    if user_info.get('additional_info'):
-        base_info += f"\n- 추가정보: {user_info['additional_info']}"
-    
-    # 시간표 정보
     timetable_info = f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
-    
+
+    calendar = calendar or []
+    calendar_info = f"\n\n[사용자 캘린더 일정]\n{format_calendar(calendar)}"
+
     system_prompt = f"""너는 성균관대학교 학생을 돕는 AI 어시스턴트야.
 
 {user_info_block}
@@ -166,20 +142,18 @@ def create_system_prompt(user_info: Dict, timetable: List[Dict]) -> str:
 3. 정보가 불확실하거나 없으면 솔직하게 모른다고 말하기
 4. **반드시 마크다운 형식으로 출력**:
    - 리스트는 `*` 또는 `-` 사용
-   - 리스트 앞뒤로 빈 줄 필수 (예: 문단\n\n* 리스트1\n* 리스트2\n\n다음 문단)
+   - 리스트 앞뒤로 빈 줄 필수
    - 중요한 날짜, 기한은 **볼드**로 강조
    - 제목은 ## 또는 ### 사용
 5. 여러 항목이 있으면 리스트로 정리
 6. 사용자 정보(캠퍼스, 학과, 학년, 학기, 시간표)를 고려한 맞춤형 답변 제공
-   - 예: 자연과학캠퍼스 학생이면 자연과학캠퍼스 관련 정보 우선 제공
-   - 학년/학기에 따른 졸업요건, 수강신청 정보 맞춤 제공
 7. 시간표를 고려하여 일정 충돌 여부를 알려줄 수 있음
 
 [언어]
 사용자가 한국어로 물으면 한국어로, 영어로 물으면 영어로 답변
 """
-
     return system_prompt
+
 
 
 
@@ -213,6 +187,9 @@ async def generate_rag_response_stream(
         # 1. 문서 검색
         retriever = get_retriever(score_threshold=0.5)
         docs = retriever.invoke(question)
+        #DEBUG
+        print("[DEBUG] retrieved titles:", [(d.metadata.get("board_name"), d.metadata.get("title"), d.metadata.get("post_num")) for d in docs])
+
         
         # 2. 출처 정보 먼저 전송
         sources = extract_sources(docs)
@@ -225,7 +202,7 @@ async def generate_rag_response_stream(
         context_text = format_docs_with_metadata(docs)
         
         # 4. 시스템 프롬프트 생성 (DB 정보 활용)
-        system_msg = create_system_prompt(user_info, timetable)
+        system_msg = create_system_prompt(user_info, timetable, calendar or [])
         
         # 5. 메시지 구성
         messages = [SystemMessage(content=system_msg)]
