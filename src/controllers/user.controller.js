@@ -15,7 +15,7 @@ const { User, Timetable } = require("../models");
  */
 const register = async (req, res) => {
   try {
-    const { email, password, name, department, grade, additional_info, campus, admissionYear, semester} = req.body;
+    const { email, password, name, department, grade, additional_info, campus, admissionYear, semester } = req.body;
 
     // --------------------------------------------------
     // 1. 필수값 검증
@@ -256,7 +256,7 @@ const verifyPassword = async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
 
     if (!match) {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: "비밀번호가 일치하지 않습니다.",
       });
