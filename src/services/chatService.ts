@@ -125,8 +125,8 @@ export const generateAIResponseStream = async (
         }))
 
         // RAG API는 8001 포트
-        const baseURL = 'http://localhost:8001'
-        const url = `${baseURL}/chat`
+        const baseURL = 'http://localhost:4000'
+        const url = `${baseURL}/api/rag/ask`
 
         // JWT 토큰 가져오기
         const token = localStorage.getItem('token')
@@ -135,37 +135,21 @@ export const generateAIResponseStream = async (
         }
 
         // Fetch API로 스트리밍 요청
-        const response = await fetch(url, {
+        const response = await fetch(
+        url,
+        {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`  // ✅ JWT 토큰 추가
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // ✅ JWT 필수
             },
             body: JSON.stringify({
-                message: userMessage,
-                history: recentHistory,
-                user_info: user ? {
-                    name: user.name,
-                    department: user.department,
-                    campus: user.campus,
-                    admissionYear: user.admissionYear,
-                    grade: user.grade,
-                    semester: user.semester,
-                    additional_info: user.additional_info || null // additional_info can be null
-                } : {
-                    // Fallback for unauthenticated user - though user implies this won't happen for core info
-                    name: '미제공',
-                    department: '미제공',
-                    campus: '미제공',
-                    admissionYear: null,
-                    grade: null,
-                    semester: null,
-                    additional_info: null
-                },
-                schedules: userSchedules, // Pass the schedules array
-                timetable: userTimetable ? userTimetable.items : [] // Pass timetable items
+            message: userMessage,
+            history: recentHistory,
+            isFirstQuestion: session.messages.length === 0
             })
-        })
+        }
+        )
 
         if (!response.ok) {
             const errorText = await response.text()
