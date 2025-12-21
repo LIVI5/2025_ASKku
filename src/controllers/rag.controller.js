@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { User, Timetable, TimetableItem } = require("../models");
+const { User, Timetable, TimetableItem, Calendar, Schedule } = require("../models");
 
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8001";
 
@@ -29,14 +29,14 @@ const askRAG = async (req, res) => {
     // 2. 시간표 정보 가져오기
     const timetables = await Timetable.findAll({
       where: { userID },
-      include: [{ model: TimetableItem }],
+      include: [{ model: TimetableItem, as: "items" }],
     });
 
     // 시간표 데이터 포맷팅
     const timetableData = [];
     timetables.forEach((table) => {
-      if (table.TimetableItems) {
-        table.TimetableItems.forEach((item) => {
+      if (table.items) {
+        table.items.forEach((item) => {
           timetableData.push({
             courseName: item.courseName,
             dayOfWeek: item.dayOfWeek,
@@ -48,12 +48,43 @@ const askRAG = async (req, res) => {
       }
     });
 
-    // 3. 사용자 정보 구성
+
+    // 2-1. 캘린더 일정 가져오기
+    const calendars = await Calendar.findAll({
+      where: { userID },
+      include: [
+        {
+          model: Schedule,
+          as: "schedules"
+        },
+      ],
+    });
+
+    // 캘린더 데이터 포맷팅
+    const calendarData = [];
+
+    calendars.forEach((calendar) => {
+      if (calendar.schedules) {
+        calendar.schedules.forEach((event) => {
+          calendarData.push({
+            title: event.title,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            isAllDay: event.isAllDay,
+            type: event.type,
+            location: event.location,
+            courseName: event.courseName,
+            calendarTitle: calendar.title,
+          });
+        });
+      }
+    });
+
+    // 3. 사용자 정보 구성 (기존 그대로)
     const userInfo = {
-      name: user.name,
-      department: user.department,
-      grade: user.grade,
-      additional_info: user.additional_info,
+      ...user.toJSON(), // Sequelize instance → plain object
     };
 
     // 4. FastAPI 호출
@@ -62,45 +93,16 @@ const askRAG = async (req, res) => {
       history: history || [],
       user_info: userInfo,
       timetable: timetableData,
+      calendar: calendarData,
+
       is_first_question: isFirstQuestion || false,
-    });
+    }, { responseType: "stream" });
 
-    const data = response.data;
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
-    // // 5. 추가 정보 요청인 경우
-    // if (data.type === "info_request") {
-    //   return res.json({
-    //     success: true,
-    //     type: "info_request",
-    //     reason: data.reason,
-    //     suggestion: data.suggestion,
-    //   });
-    // }
-
-    // 6. 정상 답변인 경우
-    if (data.type === "answer") {
-      return res.json({
-        success: true,
-        type: "answer",
-        reply: data.reply,
-        sources: data.sources || [],
-      });
-    }
-
-    // 7. 에러인 경우
-    if (data.type === "error") {
-      return res.status(500).json({
-        success: false,
-        message: data.message,
-        details: data.details,
-      });
-    }
-
-    // 8. 알 수 없는 응답 타입
-    return res.status(500).json({
-      success: false,
-      message: "알 수 없는 응답 형식입니다.",
-    });
+    response.data.pipe(res);
 
   } catch (err) {
     console.error("RAG Ask Error:", err);

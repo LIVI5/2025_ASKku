@@ -25,6 +25,7 @@ class ChatRequest(BaseModel):
     history: List[Dict] = []
     user_info: Dict
     timetable: List[Dict] = []
+    calendar: List[Dict] = []
 
 
 class TranslateRequest(BaseModel):
@@ -71,7 +72,8 @@ async def chat(req: ChatRequest):
                 question=req.message,
                 history=req.history,
                 user_info=req.user_info,
-                timetable=req.timetable
+                timetable=req.timetable,
+                calendar=req.calendar
             ):
                 # SSE 형식으로 전송
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"

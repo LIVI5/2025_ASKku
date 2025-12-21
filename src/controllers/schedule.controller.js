@@ -92,7 +92,7 @@ const getPrimaryCalendar = async (req, res) => {
     let calendar = await Calendar.findOne({
       where: { userID },
       order: [["createdAt", "ASC"]],
-      include: [{ model: Schedule, as: "Schedules" }], // Corrected alias
+      include: [{ model: Schedule, as: "schedules" }], // Corrected alias
     });
 
     if (!calendar) {
@@ -103,7 +103,7 @@ const getPrimaryCalendar = async (req, res) => {
       });
       // Re-query to include schedules array
       calendar = await Calendar.findByPk(calendar.calendarID, {
-        include: [{ model: Schedule, as: 'Schedules' }] // Corrected alias
+        include: [{ model: Schedule, as: 'schedules' }] // Corrected alias
       });
     }
 
