@@ -2,7 +2,17 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { User, Timetable } = require("../models");
 
-// ------------------ REGISTER ------------------
+
+// ======================================================
+//                    REGISTER
+// ======================================================
+
+/**
+ * 회원가입
+ * - 이메일 중복 검사
+ * - 비밀번호 bcrypt 해시 후 저장
+ * - 기본 사용자 정보 생성
+ */
 const register = async (req, res) => {
   try {
     const {
@@ -17,7 +27,9 @@ const register = async (req, res) => {
       additional_info
     } = req.body;
 
-    // 필수값 검증
+    // --------------------------------------------------
+    // 1. 필수값 검증
+    // --------------------------------------------------
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -25,7 +37,9 @@ const register = async (req, res) => {
       });
     }
 
-    // 이메일 중복 확인
+    // --------------------------------------------------
+    // 2. 이메일 중복 확인
+    // --------------------------------------------------
     const existing = await User.findOne({ where: { email } });
 
     if (existing) {
@@ -35,10 +49,14 @@ const register = async (req, res) => {
       });
     }
 
-    // 비밀번호 해시
+    // --------------------------------------------------
+    // 3. 비밀번호 해싱
+    // --------------------------------------------------
     const hash = await bcrypt.hash(password, 10);
 
-    // 사용자 생성
+    // --------------------------------------------------
+    // 4. 사용자 생성
+    // --------------------------------------------------
     const user = await User.create({
       email,
       password_hash: hash,
@@ -65,11 +83,22 @@ const register = async (req, res) => {
 };
 
 
-// ------------------ LOGIN ------------------
+// ======================================================
+//                      LOGIN
+// ======================================================
+
+/**
+ * 로그인
+ * - identifier(email) + password 검증
+ * - 성공 시 JWT 발급
+ */
 const login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
 
+    // --------------------------------------------------
+    // 1. 필수값 검증
+    // --------------------------------------------------
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
@@ -77,7 +106,9 @@ const login = async (req, res) => {
       });
     }
 
-    // identifier = email
+    // --------------------------------------------------
+    // 2. 사용자 조회 (email 기준)
+    // --------------------------------------------------
     const user = await User.findOne({
       where: { email: identifier },
     });
@@ -89,7 +120,9 @@ const login = async (req, res) => {
       });
     }
 
-    // 비밀번호 검증
+    // --------------------------------------------------
+    // 3. 비밀번호 검증
+    // --------------------------------------------------
     const match = await bcrypt.compare(password, user.password_hash);
 
     if (!match) {
@@ -99,7 +132,9 @@ const login = async (req, res) => {
       });
     }
 
-    // JWT 발급
+    // --------------------------------------------------
+    // 4. JWT 발급
+    // --------------------------------------------------
     const token = jwt.sign(
       { userID: user.userID },
       process.env.JWT_SECRET,
@@ -119,7 +154,14 @@ const login = async (req, res) => {
 };
 
 
-// ------------------ 추가 정보 저장 ------------------
+// ======================================================
+//              ADDITIONAL INFO UPDATE
+// ======================================================
+
+/**
+ * 추가 정보 저장
+ * - 회원가입 이후 선택 입력 정보 저장용
+ */
 const updateAdditionalInfo = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -156,7 +198,14 @@ const updateAdditionalInfo = async (req, res) => {
 };
 
 
-// ------------------ 내 정보 조회 ------------------
+// ======================================================
+//                   GET MY INFO
+// ======================================================
+
+/**
+ * 내 정보 조회
+ * - password_hash 제외
+ */
 const getMyInfo = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -184,7 +233,14 @@ const getMyInfo = async (req, res) => {
 };
 
 
-// ------------------ 비밀번호 확인 ------------------
+// ======================================================
+//                VERIFY PASSWORD
+// ======================================================
+
+/**
+ * 비밀번호 재확인
+ * - 민감 작업(개인정보 수정 등) 전 검증용
+ */
 const verifyPassword = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -228,7 +284,15 @@ const verifyPassword = async (req, res) => {
 };
 
 
-// ------------------ 개인정보 수정 ------------------
+// ======================================================
+//                UPDATE PROFILE
+// ======================================================
+
+/**
+ * 개인정보 수정
+ * - 이름, 학과, 학년 등 부분 업데이트
+ * - 비밀번호 변경 시 재해싱
+ */
 const updateProfile = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -251,7 +315,9 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // 업데이트할 데이터 준비
+    // --------------------------------------------------
+    // 업데이트 데이터 구성
+    // --------------------------------------------------
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (department !== undefined) updateData.department = department;
@@ -288,7 +354,9 @@ const updateProfile = async (req, res) => {
 };
 
 
-
+// ======================================================
+// EXPORT
+// ======================================================
 module.exports = {
   register,
   login,
