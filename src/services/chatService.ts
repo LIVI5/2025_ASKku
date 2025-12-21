@@ -4,7 +4,6 @@ import api from '../api/axiosInstance'
 
 // localStorage key 상수
 const CHAT_SESSION_KEY = 'askku_chat_session'
-const BOOKMARKS_KEY = 'askku_bookmarks'
 
 // ------------------------------
 // CHAT SESSION MANAGEMENT
@@ -182,19 +181,19 @@ export const generateAIResponseStream = async (
 
         // 스트리밍 요청
         const response = await fetch(
-        url,
-        {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // ✅ JWT 필수
-            },
-            body: JSON.stringify({
-            message: userMessage,
-            history: recentHistory,
-            isFirstQuestion: session.messages.length === 0
-            })
-        }
+            url,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // ✅ JWT 필수
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    history: recentHistory,
+                    isFirstQuestion: session.messages.length === 0
+                })
+            }
         )
 
         if (!response.ok) {
@@ -296,17 +295,57 @@ export const generateAIResponse = async (
 // ------------------------------
 
 /**
- * localStorage에 저장된 북마크 목록 조회
+ * DB에서 북마크 목록 조회 (userID 기반)
  */
-export const getBookmarks = (): Bookmark[] => {
-    const json = localStorage.getItem(BOOKMARKS_KEY)
-    return json ? JSON.parse(json) : []
+export const getBookmarks = async (): Promise<Bookmark[]> => {
+    try {
+        const res = await api.get('/api/bookmarks')
+        if (!res.data.success) return []
+
+        // 백엔드 응답을 프론트엔드 Bookmark 타입으로 변환
+        return res.data.bookmarks.map((b: any) => ({
+            id: b.bookmarkID.toString(),  // UI에서 사용할 ID
+            bookmarkID: b.bookmarkID,     // DB ID
+            title: b.title,
+            question: '',  // 목록에서는 필요 없음
+            answer: '',    // 목록에서는 필요 없음
+            sources: null,
+            timestamp: b.createdAt
+        }))
+    } catch (err) {
+        console.error('Get Bookmarks Error:', err)
+        return []
+    }
+}
+
+/**
+ * 북마크 상세 조회
+ * - DB에서 bookmarkID로 question/answer 등 전체 정보 조회
+ */
+export const getBookmarkDetail = async (bookmarkID: number): Promise<Bookmark | null> => {
+    try {
+        const res = await api.get(`/api/bookmarks/${bookmarkID}`)
+        if (!res.data.success) return null
+
+        const b = res.data.bookmark
+        return {
+            id: b.bookmarkID.toString(),
+            bookmarkID: b.bookmarkID,
+            title: b.title,
+            question: b.question,
+            answer: b.answer,
+            sources: b.sources,
+            timestamp: b.createdAt
+        }
+    } catch (err) {
+        console.error('Get Bookmark Detail Error:', err)
+        return null
+    }
 }
 
 /**
  * 북마크 추가
- * - 서버에 북마크 저장
- * - 성공 시 localStorage에도 동기화
+ * - DB에 북마크 저장
  */
 export const addBookmark = async (
     messageId: string,  // 세션 메시지 ID (북마크 표시용)
@@ -332,11 +371,6 @@ export const addBookmark = async (
             timestamp: res.data.bookmark.createdAt || new Date().toISOString()
         }
 
-        // localStorage 업데이트
-        const bookmarks = getBookmarks()
-        bookmarks.unshift(newBookmark)
-        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
-
         return newBookmark
     } catch (err) {
         console.error('Bookmark API Error:', err)
@@ -346,11 +380,13 @@ export const addBookmark = async (
 
 /**
  * 북마크 삭제
- * - 서버 + localStorage + 세션 상태 동기화
+ * - DB에서 삭제 + 세션 상태 동기화
  */
 export const removeBookmark = async (bookmarkId: string): Promise<void> => {
     try {
-        const bookmarks = getBookmarks()
+        // bookmarkId가 messageId일 수 있으므로, DB ID를 찾아야 함
+        // 하지만 API 호출 전에 bookmarks 목록이 필요함
+        const bookmarks = await getBookmarks()
         const bookmark = bookmarks.find(b =>
             b.id === bookmarkId || b.bookmarkID?.toString() === bookmarkId
         )
@@ -360,12 +396,8 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
             return
         }
 
-        // 서버에서 삭제
+        // DB에서 삭제
         await api.delete(`/api/bookmarks/${bookmark.bookmarkID}`)
-
-        // localStorage에서 삭제
-        const updated = bookmarks.filter(b => b.id !== bookmarkId)
-        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(updated))
 
         // 세션에서 북마크 플래그 제거
         const session = getCurrentSession()
@@ -386,6 +418,7 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
  * 메시지 북마크 토글
  * - assistant 메시지만 북마크 가능
  * - user 질문 + assistant 답변 쌍으로 저장
+ * - DB에서 북마크 상태를 확인하여 세션과 동기화
  */
 export const toggleMessageBookmark = async (messageId: string): Promise<void> => {
     const session = getCurrentSession()
@@ -394,36 +427,42 @@ export const toggleMessageBookmark = async (messageId: string): Promise<void> =>
     const msg = session.messages.find(m => m.id === messageId)
     if (!msg || msg.role !== "assistant") return
 
-    msg.isBookmarked = !msg.isBookmarked
-    saveSession(session)
+    // DB에서 현재 북마크 상태 확인
+    const bookmarks = await getBookmarks()
+    const existingBookmark = bookmarks.find(b => b.id === messageId)
 
     const idx = session.messages.findIndex(m => m.id === messageId)
     const userMsg = session.messages[idx - 1]
 
-    if (msg.isBookmarked && userMsg) {
-        await addBookmark(messageId, userMsg.content, msg.content)
-    } else {
+    if (existingBookmark) {
+        // 이미 북마크되어 있으면 삭제
         await removeBookmark(messageId)
+        msg.isBookmarked = false
+    } else {
+        // 북마크되어 있지 않으면 추가
+        if (userMsg) {
+            await addBookmark(messageId, userMsg.content, msg.content)
+            msg.isBookmarked = true
+        }
     }
+
+    saveSession(session)
 }
 
 /**
  * 모든 북마크 삭제
- * - 서버 + localStorage + 세션 상태 일괄 정리
+ * - DB에서 일괄 삭제 + 세션 상태 정리
  */
 export const clearAllBookmarks = async (): Promise<void> => {
     try {
-        const bookmarks = getBookmarks()
+        const bookmarks = await getBookmarks()
 
-        // 서버에서 모두 삭제
+        // DB에서 모두 삭제
         await Promise.all(
             bookmarks
                 .filter(b => b.bookmarkID)  // bookmarkID가 있는 것만
                 .map(b => api.delete(`/api/bookmarks/${b.bookmarkID}`))
         )
-
-        // localStorage 클리어
-        localStorage.removeItem(BOOKMARKS_KEY)
 
         // 세션 플래그 클리어
         const session = getCurrentSession()

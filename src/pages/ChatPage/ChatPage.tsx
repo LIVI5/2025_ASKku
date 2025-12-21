@@ -15,13 +15,14 @@ import {
     getBookmarks,
     getCurrentSession,
     removeBookmark,
+    saveSession,
     toggleMessageBookmark,
     updateMessage,
     updateMessageSources
 } from '../../services/chatService'
 
 import { addPrimaryScheduleItem, getPrimaryCalendarSchedules, getTimetable } from '../../services/myPageService' // Updated import
-import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule, User, Timetable } from '../../types'
+import { ChatMessage as ChatMessageType, ExtractedSchedule, Schedule, User, Timetable, Bookmark } from '../../types'
 import { useUser } from '../../contexts/UserContext'
 import logoImage from '../../assets/logo_nonbg.svg'
 
@@ -34,7 +35,7 @@ const normalizeType = (type?: string): Schedule['type'] => {
 export default function ChatPage() {
     const location = useLocation()
     const [messages, setMessages] = useState<ChatMessageType[]>([])
-    const [bookmarks, setBookmarks] = useState(getBookmarks())
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isScheduleLoading, setIsScheduleLoading] = useState(false)
@@ -65,6 +66,41 @@ export default function ChatPage() {
             }
         }
         fetchUserData()
+    }, [user])
+
+    // ---------------------------
+    // 북마크 로드 (userID 기반) + 세션 동기화
+    // ---------------------------
+    useEffect(() => {
+        const fetchBookmarks = async () => {
+            if (user) {
+                const bookmarkList = await getBookmarks()
+                setBookmarks(bookmarkList)
+
+                // 세션의 isBookmarked 플래그를 DB 북마크와 동기화
+                const session = getCurrentSession()
+                if (session) {
+                    let updated = false
+                    session.messages.forEach(msg => {
+                        if (msg.role === 'assistant') {
+                            // DB에 이 메시지의 북마크가 있는지 확인
+                            const isBookmarked = bookmarkList.some(b => b.id === msg.id)
+                            if (msg.isBookmarked !== isBookmarked) {
+                                msg.isBookmarked = isBookmarked
+                                updated = true
+                            }
+                        }
+                    })
+                    if (updated) {
+                        saveSession(session)
+                        setMessages([...session.messages])
+                    }
+                }
+            } else {
+                setBookmarks([])
+            }
+        }
+        fetchBookmarks()
     }, [user])
 
     // ---------------------------
@@ -296,7 +332,9 @@ export default function ChatPage() {
                 })
             )
         }
-        setBookmarks(getBookmarks())
+        // DB에서 북마크 목록 재로드
+        const updatedBookmarks = await getBookmarks()
+        setBookmarks(updatedBookmarks)
     }
 
     // ---------------------------
@@ -377,7 +415,9 @@ export default function ChatPage() {
     // ---------------------------
     const handleRemoveBookmark = async (id: string) => {
         await removeBookmark(id)
-        setBookmarks(getBookmarks())
+        // DB에서 북마크 목록 재로드
+        const updatedBookmarks = await getBookmarks()
+        setBookmarks(updatedBookmarks)
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])
     }
@@ -388,7 +428,7 @@ export default function ChatPage() {
     const handleClearAllBookmarks = async () => {
         if (!window.confirm('모든 북마크를 삭제하시겠어요?')) return
         await clearAllBookmarks()
-        setBookmarks([])
+        setBookmarks([])  // 모두 삭제했으므로 빈 배열
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])
     }

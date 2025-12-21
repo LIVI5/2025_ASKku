@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from 'react';
 import { User } from '../types';
 import { getUserInfo } from '../services/authService';
-import { clearSession, clearAllBookmarks } from '../services/chatService';
+import { clearSession } from '../services/chatService';
 
 // ======================================================
 // USER CONTEXT (전역 사용자 상태 관리)
@@ -65,14 +65,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     /**
      * 사용자 변경 감지 및 세션 초기화
      * - 로그인 / 로그아웃 / 계정 전환 시
-     * - 이전 사용자의 채팅 세션 및 북마크 자동 삭제
+     * - 이전 사용자의 채팅 세션만 삭제 (북마크는 DB에 유지)
      */
     useEffect(() => {
         const currentUserId = user?.userID || null;
         if (currentUserId !== previousUserId.current) {
-            console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session and bookmarks.`);
-            clearSession();
-            clearAllBookmarks();
+            console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session only.`);
+            clearSession();  // 세션만 초기화, 북마크는 DB에 유지
             previousUserId.current = currentUserId;
         }
     }, [user]);

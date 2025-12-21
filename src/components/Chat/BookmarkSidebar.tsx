@@ -16,7 +16,7 @@ interface BookmarkSidebarProps {
 }
 
 export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: BookmarkSidebarProps) {
-    const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null)
+    const [selectedBookmarkID, setSelectedBookmarkID] = useState<number | null>(null)
 
     const formatDate = (timestamp: string) => {
         const date = new Date(timestamp)
@@ -30,7 +30,7 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
     }
 
     const handleBookmarkClick = (bookmark: Bookmark) => {
-        setSelectedBookmark(bookmark)
+        setSelectedBookmarkID(bookmark.bookmarkID || null)
     }
 
     return (
@@ -73,7 +73,7 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
                                     </svg>
                                 </button>
                             </div>
-                            <p className="text-xs text-gray-600 line-clamp-2 mb-2">{bookmark.question}</p>
+                            <p className="text-xs text-gray-600 line-clamp-2 mb-2">{bookmark.question || '질문 내용'}</p>
                             <span className="text-xs text-gray-500">{formatDate(bookmark.timestamp)}</span>
                         </div>
                     ))
@@ -91,13 +91,11 @@ export default function BookmarkSidebar({ bookmarks, onRemove, onClearAll }: Boo
                 </div>
             )}
 
-            {selectedBookmark && (
+            {selectedBookmarkID && (
                 <BookmarkDetailModal
-                    isOpen={!!selectedBookmark}
-                    onClose={() => setSelectedBookmark(null)}
-                    question={selectedBookmark.question}
-                    answer={selectedBookmark.answer}
-                    title={selectedBookmark.title}
+                    isOpen={!!selectedBookmarkID}
+                    onClose={() => setSelectedBookmarkID(null)}
+                    bookmarkID={selectedBookmarkID}
                 />
             )}
         </div>
