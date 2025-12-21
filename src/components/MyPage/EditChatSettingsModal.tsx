@@ -3,6 +3,12 @@ import ReactDOM from 'react-dom'
 import { saveUserInformation } from '../../services/myPageService'
 import { useUser } from '../../contexts/UserContext'
 
+/**
+ * 채팅 설정 편집 모달
+ * - AI 대화 시 활용할 사용자 추가 정보 입력
+ * - 전공, 관심사, 선호 말투 등 설정
+ */
+
 interface EditChatSettingsModalProps {
     isOpen: boolean
     onClose: () => void
@@ -29,12 +35,11 @@ export default function EditChatSettingsModal({ isOpen, onClose, onSave }: EditC
         console.log('EditChatSettingsModal: saveUserInformation success:', success);
 
         if (success) {
-            await fetchUser() // Re-fetch user data to update the context
+            await fetchUser()
             console.log('EditChatSettingsModal: User data re-fetched.');
             onSave()
             onClose()
         } else {
-            // Handle error, e.g., show a toast notification
             console.error('EditChatSettingsModal: Failed to save additional information.');
         }
     }

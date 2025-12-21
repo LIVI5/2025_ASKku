@@ -10,8 +10,7 @@ import { Notice } from '../types';
 export const getLatestNotices = async (): Promise<Notice[]> => {
     try {
         const res = await api.get('/api/notices/latest');
-        
-        // The API might be returning an object like { notices: [] }
+
         const rawNotices = Array.isArray(res.data) ? res.data : res.data.notices || [];
 
         if (!Array.isArray(rawNotices)) {
@@ -20,13 +19,13 @@ export const getLatestNotices = async (): Promise<Notice[]> => {
         }
 
         return rawNotices.map((notice: any) => ({
-            id: notice.post_num || Date.now() + Math.random(), // Ensure unique ID
+            id: notice.post_num || Date.now() + Math.random(),
             source: notice.board_name,
             title: notice.title,
             date: notice.date,
             url: notice.link,
-            content: notice.content || '', // Default value
-            views: notice.views || 0,     // Default value
+            content: notice.content || '',
+            views: notice.views || 0,
         }));
     } catch (error) {
         console.error('Error fetching latest notices:', error);

@@ -5,6 +5,13 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkBreaks from 'remark-breaks'
 
+/**
+ * 북마크 상세 모달 컴포넌트
+ * - 저장된 질문/답변 전체 내용 표시
+ * - 마크다운 렌더링 지원
+ * - 외부 클릭 시 닫기
+ */
+
 interface BookmarkDetailModalProps {
     isOpen: boolean
     onClose: () => void
@@ -13,12 +20,12 @@ interface BookmarkDetailModalProps {
     title: string
 }
 
-export default function BookmarkDetailModal({ 
-    isOpen, 
-    onClose, 
-    question, 
+export default function BookmarkDetailModal({
+    isOpen,
+    onClose,
+    question,
     answer,
-    title 
+    title
 }: BookmarkDetailModalProps) {
     const modalRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +50,6 @@ export default function BookmarkDetailModal({
                 ref={modalRef}
                 className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[80vh] overflow-hidden animate-fade-in-up flex flex-col"
             >
-                {/* Header */}
                 <div className="bg-askku-primary px-6 py-4 flex justify-between items-center">
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
@@ -58,14 +64,12 @@ export default function BookmarkDetailModal({
                     </button>
                 </div>
 
-                {/* Content - Scrollable */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Question */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
                             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </div>
                             <h3 className="font-bold text-gray-800">질문</h3>
@@ -75,12 +79,11 @@ export default function BookmarkDetailModal({
                         </div>
                     </div>
 
-                    {/* Answer */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
                             <div className="w-8 h-8 rounded-full bg-askku-primary flex items-center justify-center flex-shrink-0">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
                                 </svg>
                             </div>
                             <h3 className="font-bold text-gray-800">답변</h3>
@@ -110,7 +113,7 @@ export default function BookmarkDetailModal({
                                             <h3 className="text-base font-bold mt-2 mb-1" {...props} />
                                         ),
                                         code: ({ node, inline, ...props }: any) => (
-                                            inline 
+                                            inline
                                                 ? <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props} />
                                                 : <code className="block bg-gray-200 p-2 rounded my-2 text-sm" {...props} />
                                         ),
@@ -132,7 +135,6 @@ export default function BookmarkDetailModal({
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
                     <button
                         onClick={onClose}

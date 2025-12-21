@@ -8,20 +8,24 @@ import ScheduleDetailModal from '../../components/MyPage/ScheduleDetailModal'
 import { Schedule, TimetableItem } from '../../types'
 import { getTimetable, deleteTimetableItem } from '../../services/myPageService'
 
+/**
+ * 마이페이지 컴포넌트
+ * - 캘린더/시간표 뷰 전환
+ * - 일정/과목 추가 및 관리
+ * - 대화 설정 관리
+ */
+
 export default function MyPage() {
     const [view, setView] = useState<'calendar' | 'timetable'>('calendar')
 
-    // Modal states
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
     const [isEditChatSettingsModalOpen, setIsEditChatSettingsModalOpen] = useState(false)
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-    // Schedule-related state
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null)
     const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0)
 
-    // Timetable-related state
     const [timetableItems, setTimetableItems] = useState<TimetableItem[]>([]);
     const [isTimetableLoading, setIsTimetableLoading] = useState<boolean>(false);
     const [timetableError, setTimetableError] = useState<string | null>(null);
@@ -40,13 +44,10 @@ export default function MyPage() {
         }
     };
 
-    // Fetch timetable data when the view is switched to 'timetable'
-    // Fetch calendar data when the view is switched to 'calendar'
     useEffect(() => {
         if (view === 'timetable') {
             fetchTimetableData();
         } else if (view === 'calendar') {
-            // Refresh calendar data to ensure it reflects any external changes (e.g., direct DB deletions)
             handleScheduleRefresh();
         }
     }, [view]);
@@ -67,7 +68,6 @@ export default function MyPage() {
     }
 
     const handleAddItem = () => {
-        // Re-fetch the entire list to ensure consistency and avoid subtle state bugs
         fetchTimetableData();
     };
 
@@ -120,7 +120,7 @@ export default function MyPage() {
 
     return (
         <div className="flex-1 bg-gray-50 flex flex-col h-screen overflow-hidden">
-            {/* Header */}
+
             <div className="bg-white border-b border-gray-200 h-[72px] px-6 flex items-center justify-between flex-shrink-0">
                 <h1 className="text-xl font-bold text-gray-800">마이페이지</h1>
                 <button
@@ -131,10 +131,10 @@ export default function MyPage() {
                 </button>
             </div>
 
-            {/* Content Area */}
+
             <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-6xl mx-auto space-y-6">
-                    {/* Page Title & View Switcher */}
+
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold text-gray-800">
                             {view === 'calendar' ? '캘린더' : '시간표'}
@@ -161,12 +161,12 @@ export default function MyPage() {
                         </div>
                     </div>
 
-                    {/* Main View */}
+
                     {renderMainView()}
                 </div>
             </div>
 
-            {/* Modals */}
+
             <AddScheduleModal
                 isOpen={isScheduleModalOpen}
                 onClose={() => setIsScheduleModalOpen(false)}
@@ -180,7 +180,7 @@ export default function MyPage() {
             <EditChatSettingsModal
                 isOpen={isEditChatSettingsModalOpen}
                 onClose={() => setIsEditChatSettingsModalOpen(false)}
-                onSave={handleScheduleRefresh} // Assuming this might refresh schedule view
+                onSave={handleScheduleRefresh}
             />
             <ScheduleDetailModal
                 isOpen={isDetailModalOpen}

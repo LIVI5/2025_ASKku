@@ -26,7 +26,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             const response = await login(email, password)
 
             if (response.success) {
-                await fetchUser() // Fetch user data after successful login
+                await fetchUser()
                 navigate('/home')
             } else {
                 setError(response.message || '로그인에 실패했습니다')

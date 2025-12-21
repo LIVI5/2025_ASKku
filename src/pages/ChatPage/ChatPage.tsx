@@ -113,7 +113,7 @@ export default function ChatPage() {
         setMessages(prev => [...prev, userMessage])
 
         // 2. 로딩 상태의 빈 AI 메시지 생성
-        const aiMessage = addMessage('', 'assistant', 'markdown', true)  // isLoading=true
+        const aiMessage = addMessage('', 'assistant', 'markdown', true)
         setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
 
@@ -122,13 +122,13 @@ export default function ChatPage() {
         try {
             await generateAIResponseStream(
                 content,
-                user, // Pass user object
-                userSchedules, // Pass schedules
-                userTimetable, // Pass timetable
+                user,
+                userSchedules,
+                userTimetable,
                 // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
-                    updateMessage(aiMessage.id, accumulatedText, false)  // isLoading=false
+                    updateMessage(aiMessage.id, accumulatedText, false)
 
                     // UI 업데이트 (로딩 해제 + 내용 업데이트)
                     setMessages(prev =>
@@ -199,7 +199,7 @@ export default function ChatPage() {
         const request = `Translate the following text to English:\n\n${content}`
 
         // 1. 로딩 상태의 빈 AI 메시지 생성 (번역 결과를 위함)
-        const aiMessage = addMessage('', 'assistant', 'markdown', true)  // isLoading=true
+        const aiMessage = addMessage('', 'assistant', 'markdown', true)
         setMessages(prev => [...prev, aiMessage])
         setIsLoading(true)
 
@@ -208,13 +208,13 @@ export default function ChatPage() {
         try {
             await generateAIResponseStream(
                 request,
-                user, // Pass user object
-                userSchedules, // Pass schedules
-                userTimetable, // Pass timetable
+                user,
+                userSchedules,
+                userTimetable,
                 // onChunk: 실시간으로 텍스트 누적
                 (chunk) => {
                     accumulatedText += chunk
-                    updateMessage(aiMessage.id, accumulatedText, false)  // isLoading=false
+                    updateMessage(aiMessage.id, accumulatedText, false)
 
                     // UI 업데이트 (로딩 해제 + 내용 업데이트)
                     setMessages(prev =>
@@ -330,16 +330,16 @@ export default function ChatPage() {
     // ---------------------------
     // 일정 추가 확인
     // ---------------------------
-    const handleScheduleConfirm = async (selected: ExtractedSchedule[]) => { // Made async
+    const handleScheduleConfirm = async (selected: ExtractedSchedule[]) => {
         if (selected.length === 0) {
             setIsScheduleModalOpen(false)
             return
         }
 
-        setIsScheduleLoading(true); // Indicate loading while adding schedules
-        let successfulAdditions = 0;
+        setIsScheduleLoading(true)
+        let successfulAdditions = 0
 
-        for (const item of selected) { // Use for...of for async inside loop
+        for (const item of selected) {
             const type = normalizeType(item.type)
             try {
                 await addPrimaryScheduleItem({
@@ -351,15 +351,13 @@ export default function ChatPage() {
                     description: item.description,
                     type,
                     location: item.location,
-                    // If the extracted item's type is subject, its title can be the courseName.
                     courseName: type === 'subject' ? item.title : undefined,
-                    color: item.color, // Pass extracted color if available, otherwise undefined for backend default
+                    color: item.color,
                     sourceId: item.id
                 })
                 successfulAdditions++;
             } catch (error) {
                 console.error('Failed to add extracted schedule:', item, error);
-                // Optionally, inform the user about the failure for this specific item
             }
         }
 
@@ -369,7 +367,7 @@ export default function ChatPage() {
             alert('일정 추가에 실패했습니다. 다시 시도해주세요.')
         }
 
-        setIsScheduleLoading(false); // End loading
+        setIsScheduleLoading(false);
         setIsScheduleModalOpen(false)
         setScheduleCandidates([])
     }
@@ -378,7 +376,7 @@ export default function ChatPage() {
     // 북마크 삭제
     // ---------------------------
     const handleRemoveBookmark = async (id: string) => {
-        await removeBookmark(id)  // ✅ await 추가
+        await removeBookmark(id)
         setBookmarks(getBookmarks())
         const session = getCurrentSession()
         if (session) setMessages([...session.messages])

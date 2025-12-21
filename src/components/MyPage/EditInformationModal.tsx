@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { useUser } from '../../contexts/UserContext'
-import { getUserInfo } from '../../services/authService' // Assuming this service exists or will be created
+import { getUserInfo } from '../../services/authService'
+
+/**
+ * 개인 정보 수정 모달
+ * - 사용자 기본 정보 편집 (이름, 학과, 학년 등)
+ * - 비밀번호 변경 가능 (선택)
+ */
 
 interface EditInformationModalProps {
     isOpen: boolean
@@ -26,7 +32,6 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-    // Data from RegisterForm
     const departments = [
         '소프트웨어학과',
         '컴퓨터공학과',
@@ -49,47 +54,42 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
             if (isOpen) {
                 setLoading(true)
                 try {
-                    // Use a more specific API call for user info if available, otherwise use `user` from context
-                    // For now, let's assume `getUserInfo` is available in authService.ts and fetches more detailed user data
-                    // If not, we'll have to rely on `user` from context and fill in defaults.
-                    const userInfo = await getUserInfo(); // This would call GET /me
+                    const userInfo = await getUserInfo();
                     if (userInfo) {
                         setFormData({
                             name: userInfo.name || '',
                             email: userInfo.email || '',
                             admissionYear: userInfo.admissionYear?.toString() || '',
                             currentGrade: userInfo.grade || 1,
-                            currentSemester: userInfo.semester || 1, // Assuming 'semester' is available or default to 1
+                            currentSemester: userInfo.semester || 1,
                             department: userInfo.department || '',
-                            campus: userInfo.campus || '', // Assuming 'campus' is available or default to empty
+                            campus: userInfo.campus || '',
                             password: '',
                             confirmPassword: '',
                         })
-                    } else if (user) { // Fallback to user context if API fails or is not detailed
+                    } else if (user) {
                         setFormData({
                             name: user.name || '',
                             email: user.email || '',
-                            admissionYear: '', // Default as not available from context
+                            admissionYear: '',
                             currentGrade: user.grade || 1,
-                            currentSemester: 1, // Default
+                            currentSemester: 1,
                             department: user.department || '',
-                            campus: '', // Default
+                            campus: '',
                             password: '',
                             confirmPassword: '',
                         })
                     }
                 } catch (error) {
-                    console.error('Failed to fetch user info for editing:', error)
-                    // Fallback to user context data
                     if (user) {
                         setFormData({
                             name: user.name || '',
                             email: user.email || '',
-                            admissionYear: '', // Default as not available from context
+                            admissionYear: '',
                             currentGrade: user.grade || 1,
-                            currentSemester: 1, // Default
+                            currentSemester: 1,
                             department: user.department || '',
-                            campus: '', // Default
+                            campus: '',
                             password: '',
                             confirmPassword: '',
                         })
@@ -120,9 +120,6 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // As per requirement 4, there is no API to save, so just close the modal.
-        // In a real scenario, validation and an API call would go here.
-        // For demonstration purposes, let's add a basic password validation if user typed in new passwords
         if (formData.password || formData.confirmPassword) {
             const newErrors: Record<string, string> = {}
             if (formData.password.length > 0 && formData.password.length < 8) {
@@ -151,7 +148,6 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                     <div className="text-center py-8">로딩 중...</div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* 이름 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-1.5">이름</label>
                             <input
@@ -164,7 +160,7 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                             />
                         </div>
 
-                        {/* 이메일 주소 (수정 불가) */}
+
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-1.5">
                                 이메일 주소
@@ -178,7 +174,7 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                             />
                         </div>
 
-                        {/* 입학년도, 학년, 학기 */}
+
                         <div className="grid grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-800 mb-1.5">입학년도</label>
@@ -229,7 +225,7 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                             </div>
                         </div>
 
-                        {/* 캠퍼스, 학과 */}
+
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-800 mb-1.5">캠퍼스</label>
@@ -265,7 +261,7 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                             </div>
                         </div>
 
-                        {/* 비밀번호 */}
+
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-1.5">
                                 새 비밀번호 (선택)
@@ -301,7 +297,7 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                             <p className="text-gray-500 text-xs mt-1">8자 이상, 특수문자 포함</p>
                         </div>
 
-                        {/* 비밀번호 확인 */}
+
                         <div>
                             <label className="block text-sm font-medium text-gray-800 mb-1.5">
                                 새 비밀번호 확인
@@ -348,8 +344,8 @@ export default function EditInformationModal({ isOpen, onClose }: EditInformatio
                                 type="submit"
                                 className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
                             >
-                                                                저장
-                                                        </button>                        </div>
+                                저장
+                            </button>                        </div>
                     </form>
                 )}
             </div>

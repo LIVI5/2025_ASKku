@@ -1,17 +1,18 @@
 import api from '../api/axiosInstance';
 import { Schedule, Timetable, TimetableItem, Calendar } from '../types';
 
-// --- Schedule Management (API-based) ---
+// ======================================================
+// SCHEDULE MANAGEMENT (캘린더 일정)
+// ======================================================
 
 /**
- * Fetches the user's primary calendar and its schedules from the server.
- * @returns A Promise that resolves to an array of Schedule objects.
+ * 사용자 기본 캘린더의 일정 목록 조회
+ * - Primary Calendar의 모든 일정 반환
+ * - 실패 시 빈 배열 반환
  */
 export const getPrimaryCalendarSchedules = async (): Promise<Schedule[]> => {
     try {
         const response = await api.get<{ calendar: Calendar }>('/api/schedule/primary');
-        // The backend returns { calendar: { ... } }. We need to access its Schedules.
-        // Based on the backend description: "calendar.Schedules (대문자 'S')"
         return response.data.calendar.schedules || [];
     } catch (error) {
         console.error('Failed to fetch primary calendar schedules:', error);
@@ -20,25 +21,23 @@ export const getPrimaryCalendarSchedules = async (): Promise<Schedule[]> => {
 };
 
 /**
- * Adds a new schedule item to the user's primary calendar.
- * @param schedule - The schedule data, without the 'itemID'.
- * @returns A Promise that resolves to the newly created Schedule item (including its new id).
+ * Primary Calendar에 새 일정 추가
+ * - 제목, 날짜, 시간, 타입, 위치 등 포함
+ * - date 필드는 startDate/endDate로 자동 매핑
  */
 export const addPrimaryScheduleItem = async (schedule: Omit<Schedule, 'itemID'>): Promise<Schedule> => {
     const payload = {
         title: schedule.title,
         description: schedule.description,
-        // Backend expects startDate, endDate, startTime, endTime, isAllDay, type, location etc.
-        // Assuming `date` from frontend maps to both `startDate` and `endDate` if not explicitly provided.
         startDate: schedule.startDate || schedule.date,
         endDate: schedule.endDate || schedule.date,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
-        isAllDay: schedule.allDay ?? false, // Default to false if not provided
+        isAllDay: schedule.allDay ?? false,
         type: schedule.type,
         location: schedule.location,
         color: schedule.color,
-        courseName: schedule.courseName // Changed from subject to courseName
+        courseName: schedule.courseName
     };
 
     const response = await api.post<Schedule>('/api/schedule/primary/items', payload);
@@ -46,13 +45,11 @@ export const addPrimaryScheduleItem = async (schedule: Omit<Schedule, 'itemID'>)
 };
 
 /**
- * Updates an existing schedule item.
- * @param itemId - The ID of the schedule item to update.
- * @param scheduleData - An object containing the fields to update.
- * @returns A Promise that resolves to the updated Schedule item.
+ * 기존 일정 수정
+ * - 부분 업데이트 지원 (변경된 필드만 전송)
+ * - undefined 값은 자동 제외
  */
 export const updateScheduleItem = async (itemId: string, scheduleData: Partial<Omit<Schedule, 'itemID'>>): Promise<Schedule> => {
-    // Map partial Schedule object to backend payload
     const payload: any = {
         title: scheduleData.title,
         description: scheduleData.description,
@@ -64,9 +61,10 @@ export const updateScheduleItem = async (itemId: string, scheduleData: Partial<O
         type: scheduleData.type,
         location: scheduleData.location,
         color: scheduleData.color,
-        courseName: scheduleData.courseName // Changed from subject to courseName
+        courseName: scheduleData.courseName
     };
-    // Remove undefined values from payload
+
+    // undefined 값 제거
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
     const response = await api.put<Schedule>(`/api/schedule/items/${itemId}`, payload);
@@ -74,36 +72,37 @@ export const updateScheduleItem = async (itemId: string, scheduleData: Partial<O
 };
 
 /**
- * Deletes a schedule item from a calendar.
- * @param itemId - The ID of the schedule item to delete.
+ * 일정 삭제
+ * - itemID 기준으로 삭제
  */
 export const deleteScheduleItem = async (itemId: string): Promise<void> => {
     await api.delete(`/api/schedule/items/${itemId}`);
 };
 
-// --- NEW Timetable Management (API-based) ---
+// ======================================================
+// TIMETABLE MANAGEMENT (시간표)
+// ======================================================
 
 /**
- * Fetches the user's primary timetable from the server.
- * @returns A Promise that resolves to the user's Timetable object.
+ * 사용자 시간표 조회
+ * - Primary Timetable 정보 반환
+ * - 실패 시 빈 시간표 객체 반환 (UI 크래시 방지)
  */
 export const getTimetable = async (): Promise<Timetable> => {
     try {
         const response = await api.get<{ timetable: Timetable }>('/api/timetable/primary');
-        // The backend sends { timetable: { ... } }, so we extract it.
         return response.data.timetable;
     } catch (error) {
         console.error('Failed to fetch timetable:', error);
-        // On failure, return an empty timetable structure to prevent UI crashes.
-        // The backend guarantees one exists, so this is a fallback for network/auth errors.
+        // 네트워크 오류 등 실패 시 fallback
         return { timetableID: 0, userID: 0, createdAt: '', items: [] };
     }
 };
 
 /**
- * Adds a new course (TimetableItem) to the user's primary timetable.
- * @param item - The course data, without the 'itemID' and 'timetableID'.
- * @returns A Promise that resolves to the newly created TimetableItem (including its new id).
+ * 시간표에 수업(과목) 추가
+ * - 과목명, 요일, 시간, 교수명, 강의실 등
+ * - itemID와 timetableID는 서버에서 자동 생성
  */
 export const addTimetableItem = async (item: Omit<TimetableItem, 'itemID' | 'timetableID'>): Promise<TimetableItem> => {
     const response = await api.post<TimetableItem>('/api/timetable/primary/items', item);
@@ -111,10 +110,8 @@ export const addTimetableItem = async (item: Omit<TimetableItem, 'itemID' | 'tim
 };
 
 /**
- * Updates an existing course (TimetableItem).
- * @param itemId - The ID of the course to update.
- * @param item - An object containing the fields to update.
- * @returns A Promise that resolves to the updated TimetableItem.
+ * 시간표 수업 정보 수정
+ * - 부분 업데이트 지원
  */
 export const updateTimetableItem = async (itemId: number, item: Partial<Omit<TimetableItem, 'itemID' | 'timetableID'>>): Promise<TimetableItem> => {
     const response = await api.put<TimetableItem>(`/api/timetable/items/${itemId}`, item);
@@ -122,15 +119,21 @@ export const updateTimetableItem = async (itemId: number, item: Partial<Omit<Tim
 };
 
 /**
- * Deletes a course (TimetableItem) from the user's timetable.
- * @param itemId - The ID of the course to delete.
+ * 시간표에서 수업 삭제
  */
 export const deleteTimetableItem = async (itemId: number): Promise<void> => {
     await api.delete(`/api/timetable/items/${itemId}`);
 };
 
+// ======================================================
+// USER INFORMATION (추가 정보)
+// ======================================================
 
-// User Information Management
+/**
+ * 사용자 추가 정보 저장
+ * - 회원가입 후 선택 입력 정보 저장
+ * - JWT 토큰 필요
+ */
 export const saveUserInformation = async (information: string): Promise<boolean> => {
     console.log('Attempting to save user additional information...');
     try {
@@ -165,6 +168,10 @@ export const saveUserInformation = async (information: string): Promise<boolean>
     }
 }
 
+/**
+ * 사용자 추가 정보 조회
+ * - 현재 미구현 (null 반환)
+ */
 export const getUserInformation = (): string | null => {
     return null;
 }
