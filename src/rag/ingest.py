@@ -9,6 +9,13 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(current_file_path), 
 dotenv_path = os.path.join(project_root, '.env')
 load_dotenv(dotenv_path)
 
+# API KEY 체크
+if not os.getenv("OPENAI_API_KEY"):
+    raise RuntimeError(
+        "OPENAI_API_KEY is not set. Create .env at project root and add:\n"
+        "OPENAI_API_KEY=your_key_here"
+    )
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -30,12 +37,13 @@ except ImportError:
     STATIC_DATA_AVAILABLE = False
     print("⚠️ static_data.py not found. Skipping static documents.")
 
-PDF_DIR = "pdf_doc"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # src/rag -- cron의 db 생성 위치 통일성을 위함
+PDF_DIR = os.path.join(BASE_DIR, "pdf_doc")
 PDF_NEW_DIR = os.path.join(PDF_DIR, "new")  # 새로운 PDF
 PDF_PROCESSED_DIR = os.path.join(PDF_DIR, "processed")  # 처리 완료 PDF
-PERSIST_DIR = "chroma_db"
-CRAWLED_DATA_FILE = "crawled_data.json"  # 게시판별 post_num 저장
-LATEST_NOTICES_FILE = "latest_notices.json"  # 최신 공지사항 저장 (전체 통합)
+PERSIST_DIR = os.path.join(BASE_DIR, "chroma_db")
+CRAWLED_DATA_FILE = os.path.join(BASE_DIR, "crawled_data.json") # 게시판별 post_num 저장
+LATEST_NOTICES_FILE = os.path.join(BASE_DIR, "latest_notices.json") # 최신 공지사항 저장 (전체 통합)
 
 def clean_text(text: str) -> str:
     """텍스트 인코딩 정리"""
@@ -46,7 +54,6 @@ def clean_text(text: str) -> str:
 def load_crawled_data() -> Dict[str, Set[str]]:
     """
     이미 크롤링한 데이터 로드
-    
     Returns:
         dict: {"소프트웨어학과": {"909", "908", ...}, "기숙사": {...}, ...}
     """
@@ -173,14 +180,12 @@ def process_crawler(
 ) -> tuple[List[Document], Set[str], List[dict]]:
     """
     범용 크롤러 처리 함수
-    
     Args:
         board_name: 게시판 이름 (예: "소프트웨어학과", "기숙사")
         crawl_func: 크롤링 함수
         notices_to_docs_func: notices를 Document로 변환하는 함수
         existing_post_nums: 기존에 크롤링한 post_num set (숫자만: "909", "908")
         crawl_kwargs: 크롤러에 전달할 추가 인자
-    
     Returns:
         tuple: (documents, new_post_nums, notices)
     """
@@ -228,10 +233,8 @@ def process_crawler(
 def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Document], Dict[str, Set[str]]]:
     """
     여러 크롤러에서 데이터 수집 및 Document 변환
-    
     Args:
         crawled_data: {"소프트웨어학과": {"909", ...}, "기숙사": {...}, ...}
-    
     Returns:
         tuple: (all_documents, updated_crawled_data)
     """
@@ -264,7 +267,7 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
             "crawl_func": crawl_dorm_seoul,
             "notices_to_docs_func": dorm_seoul_ntd,
             "crawl_kwargs": {
-                "max_pages": 3,   # 필요하면 늘리기
+                "max_pages": 3,
                 "delay": 2
             }
         },
@@ -282,21 +285,10 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
             "crawl_func": crawl_skku_main,
             "notices_to_docs_func": skku_main_ntd,
             "crawl_kwargs": {
-                "max_pages": 2,   # 이미 테스트에서 2 페이지만 돌렸으니까 일단 2
+                "max_pages": 3,
                 "delay": 2
             }
         },
-
-        # 기숙사 크롤러 추가 시 (예시)
-        # {
-        #     "board_name": "기숙사",
-        #     "crawl_func": crawl_dorm_notices,
-        #     "notices_to_docs_func": dorm_notices_to_documents,
-        #     "crawl_kwargs": {
-        #         "max_pages": 20,
-        #         "delay": 2
-        #     }
-        # },
     ]
     
     # 각 공지사항 크롤러 실행
@@ -321,35 +313,7 @@ def load_crawler_documents(crawled_data: Dict[str, Set[str]]) -> tuple[List[Docu
     # 전체 게시판 통합하여 최신 공지 업데이트
     if all_notices:
         update_latest_notices(all_notices, top_n=6)
-    
-    # 추가 크롤러 설정 (식당 메뉴 등 - 최신 공지에 포함 안 됨)
-    # additional_crawlers = [
-    #     {
-    #         "name": "식당메뉴",
-    #         "crawl_func": crawl_restaurant_menu,
-    #         "to_docs_func": menu_to_documents,
-    #         "crawl_kwargs": {}
-    #     }
-    # ]
-    
-    # for crawler_config in additional_crawlers:
-    #     try:
-    #         print(f"\n{'='*60}")
-    #         print(f"🍽️ Crawling {crawler_config['name']}...")
-    #         print(f"{'='*60}")
-    #         
-    #         data = crawler_config["crawl_func"](**crawler_config["crawl_kwargs"])
-    #         docs = crawler_config["to_docs_func"](data)
-    #         
-    #         for d in docs:
-    #             d.page_content = clean_text(d.page_content)
-    #             d.metadata["source_type"] = crawler_config["name"]
-    #         
-    #         all_docs.extend(docs)
-    #         print(f"✅ Successfully crawled {len(docs)} {crawler_config['name']} documents")
-    #     except Exception as e:
-    #         print(f"❌ Error: {e}")
-    
+
     return all_docs, updated_data
 
 def split_documents(docs: List) -> List:
@@ -366,7 +330,6 @@ def split_documents(docs: List) -> List:
 def build_vectorstore(chunks: List, mode: str = "create"):
     """
     벡터스토어 생성 또는 업데이트
-    
     Args:
         chunks: 문서 청크 리스트
         mode: "create" (새로 만들기) 또는 "update" (기존에 추가)
@@ -403,7 +366,6 @@ def main(
 ):
     """
     메인 실행 함수
-    
     Args:
         include_pdf: PDF 문서 포함 여부
         include_crawlers: 크롤러 실행 여부
@@ -427,12 +389,12 @@ def main(
         print(f"  - {board}: {len(nums)} posts")
     print(f"  Total: {total_existing} posts")
     
-    # 2. PDF 로드 (선택사항)
+    # 2. PDF 로드
     if include_pdf:
         docs_pdf = load_pdf_documents()
         all_docs.extend(docs_pdf)
     
-    # 3. 정적 데이터 로드 (선택사항)
+    # 3. 정적 데이터 로드
     if include_static and STATIC_DATA_AVAILABLE:
         print(f"\n{'='*60}")
         print("📚 Loading Static Documents...")

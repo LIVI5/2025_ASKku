@@ -101,7 +101,7 @@ ACADEMIC_CALENDAR_2025 = """
 2026학년도 및 1학기 개시일: 2026-03-01 ~ 2026-03-01
 """
 
-# 건물 정보
+# 건물 정보 : 자연과학캠퍼스
 BUILDING_INFO_NATURAL_SCIENCE = """
 자연과학캠퍼스 주요 건물 안내
 
@@ -158,6 +158,7 @@ BUILDING_INFO_NATURAL_SCIENCE = """
 - 건축관리실: 16번 건물
 """
 
+# 건물 정보 : 인문사회캠퍼스
 BUILDING_INFO_HUMANITIES = """
 인문사회과학캠퍼스 주요 건물 안내
 
@@ -185,7 +186,7 @@ BUILDING_INFO_HUMANITIES = """
 기타시설:
 - 유림회관
 """
-
+# 도서관 정보 : 인문사회캠퍼스
 INFO_LIBRARIES_HUMANITIES = """
 인문사회과학캠퍼스 도서관(중앙도서관 또는 중도, 법학도서관, 경영관열람실) 안내
 [평시]
@@ -240,7 +241,7 @@ INFO_LIBRARIES_HUMANITIES = """
 운영시간: 06:00~24:00
 비고: 없음
 """
-
+# 도서관 정보 : 자연과학캠퍼스
 INFO_LIBRARIES_NATURAL_SCIENCE = """
 자연과학캠퍼스 삼성학술정보관(디지털도서관 또는 디도) 안내
 [평시]
@@ -355,7 +356,6 @@ def get_static_documents() -> List[Document]:
     """
     documents = []
     
-    # 학사일정
     documents.append(Document(
         page_content=ACADEMIC_CALENDAR_2025,
         metadata={
@@ -363,11 +363,10 @@ def get_static_documents() -> List[Document]:
             "title": "2025학년도 학사일정",
             "date": "2025",
             "post_num": "STATIC_CALENDAR_2025",
-            "link": None  # 정적 데이터는 링크 없음
+            "link": None 
         }
     ))
     
-    # 건물 정보
     documents.append(Document(
         page_content=BUILDING_INFO_NATURAL_SCIENCE,
         metadata={
@@ -410,7 +409,6 @@ def get_static_documents() -> List[Document]:
         
     return documents
 
-# 테스트
 if __name__ == "__main__":
     docs = get_static_documents()
     print(f"Total static documents: {len(docs)}")

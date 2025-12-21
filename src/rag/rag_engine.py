@@ -5,10 +5,12 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from datetime import datetime
 
 load_dotenv()
-PERSIST_DIR = "chroma_db"
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PERSIST_DIR = os.path.join(BASE_DIR, "chroma_db")
+today = datetime.now().strftime("%Y-%m-%d")
 
 def clean_text(text: str) -> str:
     """텍스트 인코딩 정리"""

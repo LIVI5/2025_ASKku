@@ -327,22 +327,75 @@ async def bookmark_title(req: BookmarkTitleRequest):
 
 
 def clean_llm_output(output: str) -> str:
-    output = output.strip()
-    if output.startswith("```"):
-        output = output.split("```")[1]
-        output = output.replace("json", "").strip()
+    """
+    LLM이 반환한 문자열에서 JSON 파싱을 방해하는 요소들을 최대한 제거/정리
+    반환값은 "json.loads() 가능한 문자열"을 목표로 함
+    """
+    if output is None:
+        return ""
 
-    output = output.replace(""", "\"").replace(""", "\"").replace("'", "'").replace("'", "'")
-    return output.strip()
+    text = output.strip()
+
+    # 1) 코드펜스 제거 (```json ... ``` 또는 ``` ... ```)
+    if text.startswith("```"):
+        parts = text.split("```")
+        if len(parts) >= 2:
+            text = parts[1].strip()
+            # "json" 같은 언어 태그 제거
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+
+    # 2) 스마트 따옴표를 일반 따옴표로 변환
+    text = (
+        text.replace("“", '"')
+            .replace("”", '"')
+            .replace("‘", "'")
+            .replace("’", "'")
+    )
+
+    # 3) 불필요한 BOM/제어문자 같은 것 최소 정리
+    text = text.replace("\ufeff", "").strip()
+
+    # 4) 정말 가끔 앞뒤에 잡설이 붙는 경우가 있음
+    #    "가장 바깥 JSON 블록"만 아주 보수적으로 추출 시도
+    #    - { ... } 또는 [ ... ] 로 시작하는 구간을 찾는 정도만 함
+    first_obj = text.find("{")
+    first_arr = text.find("[")
+    start_candidates = [i for i in [first_obj, first_arr] if i != -1]
+    if start_candidates:
+        start = min(start_candidates)
+        # 끝도 보수적으로: 마지막 } 또는 ] 위치
+        end_obj = text.rfind("}")
+        end_arr = text.rfind("]")
+        end_candidates = [i for i in [end_obj, end_arr] if i != -1]
+        if end_candidates:
+            end = max(end_candidates)
+            if end > start:
+                text = text[start:end+1].strip()
+
+    return text
 
 
 def safe_json_parse(output: str):
+    """
+    JSON 파싱을 '안전하게' 수행
+    """
+    text = output.strip()
+
+    # 1) 정상 파싱 시도
     try:
-        return json.loads(output)
+        return json.loads(text)
     except json.JSONDecodeError:
-        if output.startswith("{") and output.endswith("}"):
-            return [json.loads(output)]
-        raise
+        pass
+
+    # 2) 단일 객체처럼 보이면 리스트로 감싸서 재시도
+    if text.startswith("{") and text.endswith("}"):
+        obj = json.loads(text)
+        return [obj]
+
+    # 3) JSON이 아님 -> 에러 올려서 호출부에서 처리
+    raise json.JSONDecodeError("Invalid JSON", text, 0)
+
 
 
 @app.post("/schedule/summary")

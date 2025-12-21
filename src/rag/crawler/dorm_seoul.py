@@ -6,9 +6,15 @@ import time
 from urllib.parse import urljoin
 from langchain_core.documents import Document
 
-# 명륜학사(서울) 공지사항 리스트 페이지
 BASE_URL = "https://dorm.skku.edu/dorm_seoul/notice/notice_all.jsp"
 BOARD_NO = "78"   # URL에 있는 board_no 값 (서울)
+
+def _safe_quit(driver):
+    """드라이버 종료(예외 무시)"""
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
 def crawl_notices(
     max_pages=30,
@@ -17,7 +23,6 @@ def crawl_notices(
 ):
     """
     명륜학사(서울) 공지사항 크롤링
-
     Args:
         max_pages: 크롤링할 최대 페이지 수
         delay: 페이지 로딩 대기 시간(초)
@@ -27,119 +32,120 @@ def crawl_notices(
         existing_post_nums = set()
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-    notices = []
-    article_limit = 10  # 페이지당 글 개수
+    try:
+        notices = []
+        article_limit = 10 
 
-    for page_num in range(max_pages):
-        offset = page_num * article_limit
-        # 리스트 페이지 URL (1페이지도 offset=0으로 동일 패턴)
-        list_url = f"{BASE_URL}?board_no={BOARD_NO}&mode=list&pager.offset={offset}"
+        for page_num in range(max_pages):
+            offset = page_num * article_limit
+            # 리스트 페이지 URL (1페이지도 offset=0으로 동일 패턴)
+            list_url = f"{BASE_URL}?board_no={BOARD_NO}&mode=list&pager.offset={offset}"
 
-        print(f"\n=== [서울] Crawling page {page_num + 1}/{max_pages} (offset: {offset}) ===")
-        driver.get(list_url)
-        time.sleep(delay)
+            print(f"\n=== [서울] Crawling page {page_num + 1}/{max_pages} (offset: {offset}) ===")
+            driver.get(list_url)
+            time.sleep(delay)
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+            soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # 공지사항 테이블의 각 행(tr) 선택
-        rows = soup.select("table tbody tr")
+            # 공지사항 테이블의 각 행(tr) 선택
+            rows = soup.select("table tbody tr")
 
-        if not rows:
-            print("No rows found, stopping.")
-            break
+            if not rows:
+                print("No rows found, stopping.")
+                break
 
-        page_notices = []
-        total_items_on_page = 0
-        skipped_items = 0
-        found_existing = False  # ✨ 기존 글 발견 플래그
+            page_notices = []
+            total_items_on_page = 0
+            skipped_items = 0
+            found_existing = False
 
-        for row in rows:
-            cells = row.find_all("td")
-            # 헤더나 이상한 행은 스킵
-            if len(cells) < 5:
-                continue
-
-            total_items_on_page += 1
-
-            no_text = cells[0].get_text(strip=True)
-            category = cells[1].get_text(strip=True)
-            title_tag = cells[2].find("a")
-
-            if not title_tag:
-                continue
-
-            title = title_tag.get_text(strip=True)
-            link = title_tag.get("href", "")
-
-            if not link.startswith("http"):
-                link = urljoin(BASE_URL, link)
-
-            date_text = cells[-2].get_text(strip=True)  # 마지막에서 두 번째 컬럼이 보통 날짜
-            
-            # 번호 처리 (상단공지 / 일반글)
-            is_fixed_notice = (no_text == "" or "Image" in no_text)
-            
-            if is_fixed_notice:
-                post_num = f"NOTICE_{title}_{date_text}"
-            else:
-                post_num = no_text
-
-            # ✨ 중복 체크 - 고정 공지가 아닌 일반 글에서 중복 발견 시 즉시 중단
-            if post_num in existing_post_nums:
-                if not is_fixed_notice:  # 일반 글인 경우
-                    print(f"  → Found existing post: {title} ({post_num})")
-                    print(f"  → Stopping crawl (all newer posts already collected)")
-                    found_existing = True
-                    break  # 현재 페이지 루프 중단
-                else:
-                    # 고정 공지는 스킵만
-                    print(f"  → Skipping fixed notice: {title}")
-                    skipped_items += 1
+            for row in rows:
+                cells = row.find_all("td")
+                # 헤더나 이상한 행은 스킵
+                if len(cells) < 5:
                     continue
 
-            page_notices.append({
-                "post_num": post_num,
-                "title": title,
-                "date": date_text,
-                "link": link,
-                "category": category,
-                "is_fixed_notice": is_fixed_notice
-            })
+                total_items_on_page += 1
 
-        print(f"  Total rows: {total_items_on_page}, New: {len(page_notices)}, Skipped: {skipped_items}")
+                no_text = cells[0].get_text(strip=True)
+                category = cells[1].get_text(strip=True)
+                title_tag = cells[2].find("a")
 
-        # ✨ 기존 글을 만났으면 크롤링 완전 종료
-        if found_existing:
-            driver.quit()
-            print("\n=== [서울] Crawling stopped (found existing post) ===")
-            print(f"Total new notices crawled: {len(notices)}")
-            return notices
+                if not title_tag:
+                    continue
 
-        if total_items_on_page == 0:
-            print("No items on this page, stopping.")
-            break
+                title = title_tag.get_text(strip=True)
+                link = title_tag.get("href", "")
 
-        # 상세 페이지(body) 크롤링
-        for idx, notice_info in enumerate(page_notices, 1):
-            print(f"  [{idx}/{len(page_notices)}] Crawling: {notice_info['title']}")
-            body = crawl_notice_body(driver, notice_info["link"], delay=delay)
-            notices.append({
-                "post_num": notice_info["post_num"],
-                "title": notice_info["title"],
-                "date": notice_info["date"],
-                "link": notice_info["link"],
-                "category": notice_info["category"],
-                "body": body,
-                "is_fixed_notice": notice_info["is_fixed_notice"],
-                "source": "DORM_SEOUL"
-            })
-            existing_post_nums.add(notice_info["post_num"])
-            print(f"    ✓ Completed ({notice_info['post_num']})")
+                if not link.startswith("http"):
+                    link = urljoin(BASE_URL, link)
 
-    driver.quit()
-    print("\n=== [서울] Crawling completed ===")
-    print(f"Total notices crawled: {len(notices)}")
-    return notices
+                date_text = cells[-2].get_text(strip=True)  # 마지막에서 두 번째 컬럼이 보통 날짜
+                
+                # 번호 처리 (상단공지 / 일반글)
+                is_fixed_notice = (no_text == "" or "Image" in no_text)
+                
+                if is_fixed_notice:
+                    post_num = f"NOTICE_{title}_{date_text}"
+                else:
+                    post_num = no_text
+
+                # 중복 체크 - 고정 공지가 아닌 일반 글에서 중복 발견 시 즉시 중단
+                if post_num in existing_post_nums:
+                    if not is_fixed_notice: 
+                        print(f"  → Found existing post: {title} ({post_num})")
+                        print(f"  → Stopping crawl (all newer posts already collected)")
+                        found_existing = True
+                        break  
+                    else:
+                        print(f"  → Skipping fixed notice: {title}")
+                        skipped_items += 1
+                        continue
+
+                page_notices.append({
+                    "post_num": post_num,
+                    "title": title,
+                    "date": date_text,
+                    "link": link,
+                    "category": category,
+                    "is_fixed_notice": is_fixed_notice
+                })
+
+            print(f"  Total rows: {total_items_on_page}, New: {len(page_notices)}, Skipped: {skipped_items}")
+
+            if found_existing:
+                driver.quit()
+                print("\n=== [서울] Crawling stopped (found existing post) ===")
+                print(f"Total new notices crawled: {len(notices)}")
+                return notices
+
+            if total_items_on_page == 0:
+                print("No items on this page, stopping.")
+                break
+
+            # 상세 페이지 크롤링
+            for idx, notice_info in enumerate(page_notices, 1):
+                print(f"  [{idx}/{len(page_notices)}] Crawling: {notice_info['title']}")
+                body = crawl_notice_body(driver, notice_info["link"], delay=delay)
+                notices.append({
+                    "post_num": notice_info["post_num"],
+                    "title": notice_info["title"],
+                    "date": notice_info["date"],
+                    "link": notice_info["link"],
+                    "category": notice_info["category"],
+                    "body": body,
+                    "is_fixed_notice": notice_info["is_fixed_notice"],
+                    "source": "DORM_SEOUL"
+                })
+                existing_post_nums.add(notice_info["post_num"])
+                print(f"    ✓ Completed ({notice_info['post_num']})")
+
+        print("\n=== [서울] Crawling completed ===")
+        print(f"Total notices crawled: {len(notices)}")
+        return notices
+
+    finally:
+        _safe_quit(driver)
 
 
 def crawl_notice_body(driver, link, delay=1):
@@ -187,7 +193,7 @@ def notices_to_documents(notices):
         )
     return docs
 
-
+"""테스트용 실행 코드"""
 if __name__ == "__main__":
     existing_nums = set()
     notices = crawl_notices(

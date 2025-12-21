@@ -1,4 +1,4 @@
-# chatbot.py
+# chatbot.py (로컬 테스트용)
 import os
 
 from langchain_community.vectorstores import Chroma
@@ -8,21 +8,21 @@ load_dotenv()
 
 PERSIST_DIR = "chroma_db"
 
-
 def clean_text(text: str) -> str:
+    """ 임베딩/LLM에 넣기 전에 텍스트를 UTF-8 기준으로 정리 """
     if text is None:
         return ""
-    # 유효하지 않은 유니코드(서로게이트 등)를 모두 제거
+    # 유효하지 않은 유니코드를 모두 제거
     return text.encode("utf-8", "ignore").decode("utf-8", "ignore")
 
-
 def get_retriever():
+    """ Chroma 벡터스토어에서 문서를 가져오는 Retriever(문서 검색 개수(k)=5)를 생성 """
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectordb = Chroma(
         embedding_function=embeddings,
         persist_directory=PERSIST_DIR,
     )
-    return vectordb.as_retriever(search_kwargs={"k": 5}) # 문서 검색 개수
+    return vectordb.as_retriever(search_kwargs={"k": 5})
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
 
     retriever = get_retriever()
     llm = ChatOpenAI(
-        model="gpt-4o",   # gpt-4o-mini 써도 되고, 4o 써도 됨
+        model="gpt-4o-mini",
         temperature=0.2,
     )
 
@@ -54,7 +54,6 @@ def main():
             print("Bye!")
             break
 
-        # 🔹 터미널에서 들어온 질문도 깨끗하게
         question = clean_text(question_raw)
 
         # 1) 문서 검색
@@ -66,7 +65,7 @@ def main():
             text = clean_text(d.page_content).replace("\n", " ")
             context_parts.append(f"[문서 {i}] {text}")
         context = "\n\n".join(context_parts)
-        context = clean_text(context)  # 한 번 더 안전하게
+        context = clean_text(context)
 
         # 3) 시스템/유저 메시지 구성 + 정리
         system_msg_raw = (
