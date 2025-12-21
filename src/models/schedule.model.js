@@ -56,6 +56,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         defaultValue: "#3B82F6", // Default color for schedules
       },
+      courseName: {
+        type: DataTypes.STRING(100),
+        allowNull: true, // Not all schedules are courses
+        comment: '과목 이름 (수업 일정의 경우)'
+      },
     },
     {
       tableName: "SCHEDULE",

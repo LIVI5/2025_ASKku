@@ -79,6 +79,7 @@ const createScheduleFromChat = async (req, res) => {
         type: s.type || "schedule",
         location: s.location || null,
         color: s.color || null, // Add color field
+        courseName: s.courseName || null, // Add courseName field
     });
 
 
@@ -294,6 +295,7 @@ const addScheduleItem = async (req, res) => {
       type,
       location,
       color, // Add color field
+      courseName, // Add courseName field
     } = req.body;
 
     // 본인 캘린더인지 확인
@@ -318,6 +320,7 @@ const addScheduleItem = async (req, res) => {
       type,
       location,
       color, // Pass color to create
+      courseName, // Pass courseName to create
     });
 
     return res.status(201).json({
@@ -348,6 +351,7 @@ const updateScheduleItem = async (req, res) => {
       type,
       location,
       color, // Add color field
+      courseName, // Add courseName field
     } = req.body;
 
     const schedule = await Schedule.findByPk(itemID);
@@ -367,6 +371,7 @@ const updateScheduleItem = async (req, res) => {
     schedule.type = type ?? schedule.type;
     schedule.location = location ?? schedule.location;
     schedule.color = color ?? schedule.color; // Update color field
+    schedule.courseName = courseName ?? schedule.courseName; // Update courseName field
 
     await schedule.save();
 
