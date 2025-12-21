@@ -54,7 +54,7 @@ export default function Sidebar() {
     const handleLogout = () => {
         logout();
         setUser(null);
-        navigate('/home');
+        navigate('/');
     }
 
     return (
