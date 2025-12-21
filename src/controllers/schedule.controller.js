@@ -1,15 +1,29 @@
 const { Calendar, Schedule } = require("../models");
 const axios = require("axios");
 
+/**
+ * FastAPI 서버 주소
+ * - LLM 기반 일정 추출 담당
+ * - 환경변수 우선, 없으면 로컬 기본값 사용
+ */
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000";
 
 // ======================================================
 //               일정 추출 (LLM 기반)
 // ======================================================
+/**
+ * 채팅 질문/답변으로부터 일정 추출
+ * - FastAPI(LLM)에 question + answer 전달
+ * - DB에는 저장하지 않고 "추출 결과만" 반환
+ * - 실제 저장 여부는 프론트에서 사용자 선택 후 결정
+ */
 const createScheduleFromChat = async (req, res) => {
   try {
     const { question, answer } = req.body;
 
+    // --------------------------------------------------
+    // 0. 필수 입력값 검증
+    // --------------------------------------------------
     if (!question || !answer) {
       return res.status(400).json({
         success: false,
@@ -17,7 +31,9 @@ const createScheduleFromChat = async (req, res) => {
       });
     }
 
-    // 1) FastAPI에 일정 추출 요청
+    // --------------------------------------------------
+    // 1. FastAPI에 일정 추출 요청
+    // --------------------------------------------------
     const response = await axios.post(`${FASTAPI_URL}/schedule/summary`, {
       question,
       answer,
@@ -25,7 +41,9 @@ const createScheduleFromChat = async (req, res) => {
 
     let scheduleData = response.data?.schedule;
 
-    // 2) null 혹은 undefined → 추출 실패
+    // --------------------------------------------------
+    // 2. 일정 추출 실패 (null / undefined)
+    // --------------------------------------------------
     if (!scheduleData) {
       return res.status(400).json({
         success: false,
@@ -33,12 +51,17 @@ const createScheduleFromChat = async (req, res) => {
       });
     }
 
-    // 3) 배열인지 단일 객체인지 통일
+    // --------------------------------------------------
+    // 3. 단일 객체 / 배열 구조 통일
+    // --------------------------------------------------
     const scheduleList = Array.isArray(scheduleData)
       ? scheduleData
       : [scheduleData];
 
-    // 4) 최소한 title + startDate가 있어야 유효
+    // --------------------------------------------------
+    // 4. 최소 유효성 검사
+    // - title + startDate 필수
+    // --------------------------------------------------
     const validSchedules = scheduleList.filter(
       (s) => s?.title && s?.startDate
     );
@@ -51,8 +74,11 @@ const createScheduleFromChat = async (req, res) => {
       });
     }
 
-    // ✅ DB 저장 부분 제거 - 추출된 일정만 반환
-    // 사용자가 선택한 일정은 프론트엔드에서 addPrimaryScheduleItem()으로 저장
+    /**
+     * ⚠️ DB 저장 intentionally 제거
+     * - 일정 추출 ≠ 일정 확정
+     * - 프론트에서 선택 후 addPrimaryScheduleItem() 호출
+     */
     return res.status(200).json({
       success: true,
       message: `${validSchedules.length}개의 일정이 추출되었습니다.`,
@@ -84,11 +110,16 @@ const createScheduleFromChat = async (req, res) => {
 //               PRIMARY CALENDAR
 // ======================================================
 
-// Get user's primary calendar (first one), or create a default one if none exist.
+/**
+ * 사용자 기본 캘린더 조회
+ * - 가장 먼저 생성된 캘린더를 Primary로 사용
+ * - 존재하지 않으면 자동 생성
+ */
 const getPrimaryCalendar = async (req, res) => {
   try {
     const userID = req.user.userID;
 
+    // 가장 오래된 캘린더 = Primary Calendar
     let calendar = await Calendar.findOne({
       where: { userID },
       order: [["createdAt", "ASC"]],
@@ -118,6 +149,9 @@ const getPrimaryCalendar = async (req, res) => {
 //                   CALENDAR CRUD
 // ======================================================
 
+/**
+ * 캘린더 생성
+ */
 const createCalendar = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -140,7 +174,9 @@ const createCalendar = async (req, res) => {
   }
 };
 
-// 내 캘린더 목록 조회
+/**
+ * 내 캘린더 목록 조회
+ */
 const getMyCalendars = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -163,7 +199,9 @@ const getMyCalendars = async (req, res) => {
   }
 };
 
-// 캘린더 수정
+/**
+ * 캘린더 수정
+ */
 const updateCalendar = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -198,7 +236,10 @@ const updateCalendar = async (req, res) => {
   }
 };
 
-// 캘린더 삭제
+/**
+ * 캘린더 삭제
+ * - Schedule은 CASCADE 옵션으로 함께 삭제
+ */
 const deleteCalendar = async (req, res) => {
   try {
     const { calendarID } = req.params;
@@ -221,7 +262,11 @@ const deleteCalendar = async (req, res) => {
 //                   SCHEDULE CRUD
 // ======================================================
 
-// Add an item to the primary calendar
+/**
+ * Primary Calendar에 일정 추가
+ * - Primary Calendar가 없으면 자동 생성
+ * - 내부적으로 addScheduleItem 재사용
+ */
 const addPrimaryScheduleItem = async (req, res, next) => {
   try {
     const userID = req.user.userID;
@@ -249,7 +294,9 @@ const addPrimaryScheduleItem = async (req, res, next) => {
   }
 };
 
-// 일정 추가
+/**
+ * 일정 추가
+ */
 const addScheduleItem = async (req, res) => {
   try {
     const userID = req.user.userID;
@@ -306,7 +353,9 @@ const addScheduleItem = async (req, res) => {
   }
 };
 
-// 일정 수정
+/**
+ * 일정 수정
+ */
 const updateScheduleItem = async (req, res) => {
   try {
     const { itemID } = req.params;
@@ -358,7 +407,9 @@ const updateScheduleItem = async (req, res) => {
   }
 };
 
-// 일정 삭제
+/**
+ * 일정 삭제
+ */
 const deleteScheduleItem = async (req, res) => {
   try {
     const { itemID } = req.params;
@@ -386,6 +437,10 @@ const deleteScheduleItem = async (req, res) => {
     });
   }
 };
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
   createScheduleFromChat,
