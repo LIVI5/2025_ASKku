@@ -23,10 +23,18 @@ const askRAG = async (req, res) => {
   try {
     const userID = req.user.userID;
     const { message, history, isFirstQuestion } = req.body;
-
+    const authHeader = req.headers.authorization;
     // --------------------------------------------------
     // 0. 필수 입력값 검증
     // --------------------------------------------------
+
+    if (!authHeader) {
+      return res.status(401).json({
+      success: false,
+      message: "로그인이 필요합니다. (토큰 없음)",
+      });
+    }
+
     if (!message) {
       return res.status(400).json({
         success: false,
@@ -133,7 +141,9 @@ const askRAG = async (req, res) => {
       calendar: calendarData,
 
       is_first_question: isFirstQuestion || false,
-    }, { responseType: "stream" });
+    }, { responseType: "stream", headers:
+      {Authorization: authHeader,},
+    });
 
     // --------------------------------------------------
     // 5. SSE 헤더 설정
