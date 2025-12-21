@@ -13,7 +13,6 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     const { fetchUser } = useUser()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [rememberMe, setRememberMe] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
@@ -120,22 +119,6 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
                             required
                         />
                     </div>
-                </div>
-
-                {/* 로그인 상태 유지 & 비밀번호 찾기 */}
-                <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 text-askku-primary border-gray-300 rounded focus:ring-askku-primary"
-                        />
-                        <span className="ml-2 text-gray-600">로그인 상태 유지</span>
-                    </label>
-                    <a href="#" className="text-askku-primary hover:underline">
-                        비밀번호 찾기
-                    </a>
                 </div>
 
                 {/* 로그인 버튼 */}
