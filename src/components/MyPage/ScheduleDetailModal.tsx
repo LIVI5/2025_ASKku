@@ -58,6 +58,12 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
         }
     }
 
+    // Determine the type display text
+    const typeDisplayText = schedule.type === 'subject'
+        ? `${typeToKorean[schedule.type]} - ${schedule.courseName || '과목 없음'}`
+        : typeToKorean[schedule.type];
+
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
@@ -81,15 +87,9 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">유형</label>
-                        <p className="text-gray-800">{typeToKorean[schedule.type]}</p>
+                        <p className="text-gray-800">{typeDisplayText}</p> {/* Use typeDisplayText */}
                     </div>
 
-                    {schedule.type === 'subject' && schedule.subject && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-500">과목</label>
-                            <p className="text-gray-800">{schedule.subject}</p>
-                        </div>
-                    )}
                     {schedule.location && (
                         <div>
                             <label className="block text-sm font-medium text-gray-500">장소</label>

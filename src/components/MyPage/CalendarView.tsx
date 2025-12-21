@@ -97,23 +97,26 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
                         {day}
                     </span>
                     <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
-                        {daySchedules.map(schedule => (
-                            <div
-                                key={schedule.itemID} // Changed from schedule.id to schedule.itemID
-                                onClick={() => onScheduleClick(schedule)}
-                                className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
-                                style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
-                                title={`${schedule.title}\n${schedule.description || ''}`}
-                            >
-                                <span className="truncate">{schedule.title}</span>
-                                <button
-                                    onClick={(e) => handleDeleteSchedule(schedule.itemID, e)} // Changed from schedule.id to schedule.itemID
-                                    className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
+                        {daySchedules.map(schedule => {
+                            // Revert to original schedule.title display
+                            return (
+                                <div
+                                    key={schedule.itemID}
+                                    onClick={() => onScheduleClick(schedule)}
+                                    className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
+                                    style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
+                                    title={`${schedule.title}\n${schedule.description || ''}`}
                                 >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
+                                    <span className="truncate">{schedule.title}</span> {/* Revert to schedule.title */}
+                                    <button
+                                        onClick={(e) => handleDeleteSchedule(schedule.itemID, e)}
+                                        className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )

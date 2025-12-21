@@ -38,7 +38,7 @@ export const addPrimaryScheduleItem = async (schedule: Omit<Schedule, 'itemID'>)
         type: schedule.type,
         location: schedule.location,
         color: schedule.color,
-        subject: schedule.subject // 'subject' is specific to frontend logic for 'subject' type, might need backend mapping or removal if not directly stored.
+        courseName: schedule.courseName // Changed from subject to courseName
     };
 
     const response = await api.post<Schedule>('/api/schedule/primary/items', payload);
@@ -64,7 +64,7 @@ export const updateScheduleItem = async (itemId: string, scheduleData: Partial<O
         type: scheduleData.type,
         location: scheduleData.location,
         color: scheduleData.color,
-        subject: scheduleData.subject
+        courseName: scheduleData.courseName // Changed from subject to courseName
     };
     // Remove undefined values from payload
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);

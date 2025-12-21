@@ -85,6 +85,7 @@ export interface Schedule {
     description?: string
     color?: string
     subject?: string
+    courseName?: string; // New field for subject-type schedules
 }
 
 export type ExtractedSchedule = {

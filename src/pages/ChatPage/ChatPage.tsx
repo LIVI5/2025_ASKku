@@ -319,9 +319,8 @@ export default function ChatPage() {
                     description: item.description,
                     type,
                     location: item.location,
-                    // The 'subject' field on Schedule is used for type 'subject'.
-                    // If the extracted item's type is subject, its title can be the subject name.
-                    subject: type === 'subject' ? item.title : undefined,
+                    // If the extracted item's type is subject, its title can be the courseName.
+                    courseName: type === 'subject' ? item.title : undefined,
                     color: item.color, // Pass extracted color if available, otherwise undefined for backend default
                     sourceId: item.id
                 })

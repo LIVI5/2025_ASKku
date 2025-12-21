@@ -65,7 +65,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
 
         setLoading(true); // Start loading
 
-        const scheduleData: Omit<Schedule, 'id'> = {
+        const scheduleData: Omit<Schedule, 'itemID'> = {
             title,
             date, // This will be used as startDate and endDate by the service
             description,
@@ -77,7 +77,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         }
 
         if (type === 'subject') {
-            (scheduleData as any).subject = selectedSubject
+            (scheduleData as any).courseName = selectedSubject // Changed to courseName
         }
 
         try {
@@ -177,11 +177,13 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                                 ) : (
                                     <>
                                         <option value="">과목 없음</option>
-                                        {timetableItems.map((item) => (
-                                            <option key={item.itemID} value={item.courseName}>
-                                                {item.courseName}
-                                            </option>
-                                        ))}
+                                        {timetableItems
+                                            .filter(item => item && item.courseName && item.courseName.trim() !== '') // Filter out empty courseNames and handle null/undefined items
+                                            .map((item) => (
+                                                <option key={item.itemID} value={item.courseName}>
+                                                    {item.courseName}
+                                                </option>
+                                            ))}
                                     </>
                                 )}
                             </select>
