@@ -125,7 +125,7 @@ export interface Calendar {
     calendarID: number;
     userID: number;
     title: string;
-    Schedules: Schedule[]; // Crucial: use 'Schedules' (uppercase S) as per backend alias
+    schedules: Schedule[]; // Changed to lowercase to match backend alias
     createdAt: string;
     updatedAt: string;
 }

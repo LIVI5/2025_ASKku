@@ -12,7 +12,7 @@ export const getPrimaryCalendarSchedules = async (): Promise<Schedule[]> => {
         const response = await api.get<{ calendar: Calendar }>('/api/schedule/primary');
         // The backend returns { calendar: { ... } }. We need to access its Schedules.
         // Based on the backend description: "calendar.Schedules (대문자 'S')"
-        return response.data.calendar.Schedules || [];
+        return response.data.calendar.schedules || [];
     } catch (error) {
         console.error('Failed to fetch primary calendar schedules:', error);
         return [];
