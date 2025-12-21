@@ -71,7 +71,7 @@ export type ChatSession = {
 };
 
 export interface Schedule {
-    id: string
+    itemID: string // Changed from 'id' to 'itemID'
     title: string
     date: string // YYYY-MM-DD (legacy single-day)
     startDate?: string // YYYY-MM-DD
@@ -85,6 +85,7 @@ export interface Schedule {
     description?: string
     color?: string
     subject?: string
+    courseName?: string; // New field for subject-type schedules
 }
 
 export type ExtractedSchedule = {
@@ -117,4 +118,13 @@ export interface TimetableItem {
     location: string;
     alias?: string;
     color?: string;
+}
+
+export interface Calendar {
+    calendarID: number;
+    userID: number;
+    title: string;
+    Schedules: Schedule[]; // Crucial: use 'Schedules' (uppercase S) as per backend alias
+    createdAt: string;
+    updatedAt: string;
 }

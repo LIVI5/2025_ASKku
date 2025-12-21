@@ -26,7 +26,7 @@ export default function MyPage() {
     const [isTimetableLoading, setIsTimetableLoading] = useState<boolean>(false);
     const [timetableError, setTimetableError] = useState<string | null>(null);
 
-    const fetchTimetable = async () => {
+    const fetchTimetableData = async () => {
         try {
             setIsTimetableLoading(true);
             setTimetableError(null);
@@ -43,7 +43,7 @@ export default function MyPage() {
     // Fetch timetable data when the view is switched to 'timetable'
     useEffect(() => {
         if (view === 'timetable') {
-            fetchTimetable();
+            fetchTimetableData();
         }
     }, [view]);
 
@@ -63,14 +63,13 @@ export default function MyPage() {
     }
     
     const handleAddItem = (newItem: TimetableItem) => {
-        // Instead of updating state locally, re-fetch the entire list for consistency
-        fetchTimetable();
+        // Re-fetch the entire list to ensure consistency and avoid subtle state bugs
+        fetchTimetableData();
     };
 
     const handleDeleteItem = async (id: number) => {
         try {
             await deleteTimetableItem(id);
-            // On successful delete, filter the local state for immediate UI feedback
             setTimetableItems(prevItems => prevItems.filter(item => item.itemID !== id));
         } catch (err) {
             console.error('Failed to delete timetable item:', err);
@@ -81,12 +80,11 @@ export default function MyPage() {
     const renderMainView = () => {
         if (view === 'calendar') {
             return (
-                <div key={scheduleRefreshKey}>
-                    <CalendarView
-                        onAddClick={() => setIsScheduleModalOpen(true)}
-                        onScheduleClick={handleScheduleClick}
-                    />
-                </div>
+                <CalendarView
+                    onAddClick={() => setIsScheduleModalOpen(true)}
+                    onScheduleClick={handleScheduleClick}
+                    refreshTrigger={scheduleRefreshKey}
+                />
             )
         }
 

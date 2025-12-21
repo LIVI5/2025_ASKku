@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Schedule } from '../../types'
-import { deleteSchedule, getSchedules } from '../../services/myPageService'
+import { deleteScheduleItem, getPrimaryCalendarSchedules } from '../../services/myPageService'
 
 interface CalendarViewProps {
     onAddClick: () => void
     onScheduleClick: (schedule: Schedule) => void
+    refreshTrigger: number; // A simple number that increments to trigger reload
 }
 
 const isDateInRange = (date: string, schedule: Schedule) => {
@@ -14,19 +15,35 @@ const isDateInRange = (date: string, schedule: Schedule) => {
     return date >= start && date <= end
 }
 
-export default function CalendarView({ onAddClick, onScheduleClick }: CalendarViewProps) {
+export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigger }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [schedules, setSchedules] = useState<Schedule[]>([])
+    const [allSchedules, setAllSchedules] = useState<Schedule[]>([]) // Stores all schedules fetched from API
+    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]) // Schedules filtered by type
     const [selectedType, setSelectedType] = useState<'all' | 'personal' | 'academic' | 'course'>('all')
 
-    useEffect(() => {
-        const allSchedules = getSchedules()
-        if (selectedType === 'all') {
-            setSchedules(allSchedules)
-        } else {
-            setSchedules(allSchedules.filter(s => s.type === (selectedType === 'course' ? 'subject' : selectedType)))
+    // Effect to fetch all schedules from the API
+    const fetchAllSchedules = useCallback(async () => {
+        try {
+            const schedulesFromApi = await getPrimaryCalendarSchedules();
+            setAllSchedules(schedulesFromApi);
+        } catch (error) {
+            console.error("Failed to fetch all schedules:", error);
+            setAllSchedules([]);
         }
-    }, [selectedType])
+    }, []);
+
+    useEffect(() => {
+        fetchAllSchedules();
+    }, [fetchAllSchedules, refreshTrigger]); // Re-fetch when refreshTrigger changes
+
+    // Effect to filter schedules based on selectedType
+    useEffect(() => {
+        if (selectedType === 'all') {
+            setFilteredSchedules(allSchedules);
+        } else {
+            setFilteredSchedules(allSchedules.filter(s => s.type === (selectedType === 'course' ? 'subject' : selectedType)));
+        }
+    }, [allSchedules, selectedType]);
 
     const getDaysInMonth = (year: number, month: number) => {
         return new Date(year, month + 1, 0).getDate()
@@ -44,14 +61,15 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
     }
 
-    const handleDeleteSchedule = (id: string, e: React.MouseEvent) => {
+    const handleDeleteSchedule = async (itemID: string, e: React.MouseEvent) => { // Changed 'id' to 'itemID'
         e.stopPropagation()
-        deleteSchedule(id)
-        const allSchedules = getSchedules() // Re-fetch all schedules after deletion
-        if (selectedType === 'all') {
-            setSchedules(allSchedules)
-        } else {
-            setSchedules(allSchedules.filter(s => s.type === selectedType))
+        try {
+            await deleteScheduleItem(itemID); // Use the API delete function with itemID
+            // After successful deletion, refresh all schedules
+            fetchAllSchedules();
+        } catch (error) {
+            console.error("Failed to delete schedule:", error);
+            // Optionally, show an error message to the user
         }
     }
 
@@ -70,7 +88,7 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const daySchedules = schedules.filter(s => isDateInRange(dateStr, s))
+            const daySchedules = filteredSchedules.filter(s => isDateInRange(dateStr, s)) // Filter from filteredSchedules
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
 
             days.push(
@@ -79,23 +97,26 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
                         {day}
                     </span>
                     <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
-                        {daySchedules.map(schedule => (
-                            <div
-                                key={schedule.id}
-                                onClick={() => onScheduleClick(schedule)}
-                                className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
-                                style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
-                                title={`${schedule.title}\n${schedule.description || ''}`}
-                            >
-                                <span className="truncate">{schedule.title}</span>
-                                <button
-                                    onClick={(e) => handleDeleteSchedule(schedule.id, e)}
-                                    className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
+                        {daySchedules.map(schedule => {
+                            // Revert to original schedule.title display
+                            return (
+                                <div
+                                    key={schedule.itemID}
+                                    onClick={() => onScheduleClick(schedule)}
+                                    className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
+                                    style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
+                                    title={`${schedule.title}\n${schedule.description || ''}`}
                                 >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
+                                    <span className="truncate">{schedule.title}</span> {/* Revert to schedule.title */}
+                                    <button
+                                        onClick={(e) => handleDeleteSchedule(schedule.itemID, e)}
+                                        className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )
@@ -158,7 +179,7 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
             {/* Weekday Headers */}
 
             {/* Weekday Headers */}
-            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+            <div className="grid grid-cols-7 border-b border-r border-gray-200 bg-gray-50">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
                     <div key={day} className={`py-2 text-center text-sm font-medium ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
                         {day}
@@ -171,5 +192,5 @@ export default function CalendarView({ onAddClick, onScheduleClick }: CalendarVi
                 {renderCalendar()}
             </div>
         </div>
-    )
+    );
 }
