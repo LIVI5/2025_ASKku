@@ -37,6 +37,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const previousUserId = useRef<string | null>(null);
+    const hasInitialized = useRef<boolean>(false);
 
     /**
      * 사용자 정보 조회
@@ -64,17 +65,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     /**
      * 사용자 변경 감지 및 세션 초기화
-     * - 로그인 / 로그아웃 / 계정 전환 시
-     * - 이전 사용자의 채팅 세션만 삭제 (북마크는 DB에 유지)
+     * - 로그인 / 로그아웃 / 계정 전환 시에만 세션 클리어
+     * - 첫 로딩(페이지 새로고침, 페이지 이동)에서는 세션 유지
      */
     useEffect(() => {
+        // loading 중에는 체크하지 않음
+        if (loading) return;
+
         const currentUserId = user?.userID || null;
+
+        // 첫 로딩 완료 시: 세션을 유지하고 previousUserId만 설정
+        if (!hasInitialized.current) {
+            hasInitialized.current = true;
+            previousUserId.current = currentUserId;
+            console.log(`First load completed. User ID: ${currentUserId}. Chat session preserved.`);
+            return;
+        }
+
+        // 실제 사용자 변경인 경우에만 세션 클리어
         if (currentUserId !== previousUserId.current) {
             console.log(`User ID changed from ${previousUserId.current} to ${currentUserId}. Clearing chat session only.`);
             clearSession();  // 세션만 초기화, 북마크는 DB에 유지
             previousUserId.current = currentUserId;
         }
-    }, [user]);
+    }, [user, loading]);
 
     return (
         <UserContext.Provider value={{ user, setUser, loading, fetchUser }}>

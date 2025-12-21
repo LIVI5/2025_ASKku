@@ -77,16 +77,30 @@ export default function ChatPage() {
                 const bookmarkList = await getBookmarks()
                 setBookmarks(bookmarkList)
 
-                // 세션의 isBookmarked 플래그를 DB 북마크와 동기화
+                // 세션의 isBookmarked와 bookmarkID 플래그를 DB 북마크와 동기화
                 const session = getCurrentSession()
                 if (session) {
                     let updated = false
                     session.messages.forEach(msg => {
                         if (msg.role === 'assistant') {
-                            // DB에 이 메시지의 북마크가 있는지 확인
-                            const isBookmarked = bookmarkList.some(b => b.id === msg.id)
+                            // DB에 이 메시지의 북마크가 있는지 bookmarkID로 확인
+                            const matchedBookmark = bookmarkList.find(b => b.bookmarkID === msg.bookmarkID)
+                            const isBookmarked = !!matchedBookmark
+
                             if (msg.isBookmarked !== isBookmarked) {
                                 msg.isBookmarked = isBookmarked
+                                updated = true
+                            }
+
+                            // bookmarkID가 없는데 DB에 있으면 동기화
+                            if (!msg.bookmarkID && matchedBookmark) {
+                                msg.bookmarkID = matchedBookmark.bookmarkID
+                                updated = true
+                            }
+
+                            // bookmarkID가 있는데 DB에 없으면 제거
+                            if (msg.bookmarkID && !matchedBookmark) {
+                                msg.bookmarkID = undefined
                                 updated = true
                             }
                         }
@@ -320,9 +334,10 @@ export default function ChatPage() {
     // ---------------------------
     const handleBookmark = async (messageId: string) => {
         await toggleMessageBookmark(messageId)
+
+        // 세션 업데이트 (sources 유지)
         const session = getCurrentSession()
         if (session) {
-            // 현재 메시지의 sources를 유지하면서 업데이트
             setMessages(prev =>
                 session.messages.map(sessionMsg => {
                     const existingMsg = prev.find(m => m.id === sessionMsg.id)
@@ -332,7 +347,8 @@ export default function ChatPage() {
                 })
             )
         }
-        // DB에서 북마크 목록 재로드
+
+        // 북마크 목록 업데이트
         const updatedBookmarks = await getBookmarks()
         setBookmarks(updatedBookmarks)
     }
@@ -411,15 +427,31 @@ export default function ChatPage() {
     }
 
     // ---------------------------
+    // ---------------------------
     // 북마크 삭제
     // ---------------------------
     const handleRemoveBookmark = async (id: string) => {
-        await removeBookmark(id)
-        // DB에서 북마크 목록 재로드
+        // id는 bookmarkID (string)
+        const bookmarkIDToDelete = parseInt(id)
+
+        // 세션에서 해당 bookmarkID를 가진 메시지 찾기
+        const session = getCurrentSession()
+        if (session) {
+            const msg = session.messages.find(m => m.bookmarkID === bookmarkIDToDelete)
+            if (msg) {
+                await removeBookmark(msg.id)  // messageId로 삭제 (내부에서 세션 업데이트)
+            }
+        }
+
+        // 북마크 목록 업데이트
         const updatedBookmarks = await getBookmarks()
         setBookmarks(updatedBookmarks)
-        const session = getCurrentSession()
-        if (session) setMessages([...session.messages])
+
+        // removeBookmark가 세션을 업데이트했으므로 최신 세션 가져오기
+        const updatedSession = getCurrentSession()
+        if (updatedSession) {
+            setMessages([...updatedSession.messages])
+        }
     }
 
     // ---------------------------

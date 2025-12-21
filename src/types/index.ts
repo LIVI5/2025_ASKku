@@ -48,6 +48,7 @@ export type ChatMessage = {
     content: string;
     timestamp: string;
     isBookmarked: boolean;
+    bookmarkID?: number;
     format: 'text' | 'markdown' | 'sources';
     isLoading?: boolean;
     sources?: any[];
