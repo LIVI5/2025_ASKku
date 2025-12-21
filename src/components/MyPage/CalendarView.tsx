@@ -8,12 +8,14 @@ interface CalendarViewProps {
     refreshTrigger: number; // A simple number that increments to trigger reload
 }
 
-const isDateInRange = (date: string, schedule: Schedule) => {
-    // 날짜 부분만 추출 (YYYY-MM-DD) - 시간 정보 제거
-    const start = (schedule.startDate || schedule.date || schedule.endDate || date).substring(0, 10)
-    const end = (schedule.endDate || schedule.startDate || schedule.date || date).substring(0, 10)
-    return date >= start && date <= end
-}
+// Helper to format time (HH:mm)
+const formatTime = (timeStr: string | undefined): string => {
+    if (!timeStr) return '';
+    if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+    const match = timeStr.match(/T(\d{2}:\d{2})/)
+    return match ? match[1] : timeStr;
+};
+
 
 export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigger }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
@@ -61,15 +63,13 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
     }
 
-    const handleDeleteSchedule = async (itemID: string, e: React.MouseEvent) => { // Changed 'id' to 'itemID'
+    const handleDeleteSchedule = async (itemID: string, e: React.MouseEvent) => {
         e.stopPropagation()
         try {
-            await deleteScheduleItem(itemID); // Use the API delete function with itemID
-            // After successful deletion, refresh all schedules
+            await deleteScheduleItem(itemID);
             fetchAllSchedules();
         } catch (error) {
             console.error("Failed to delete schedule:", error);
-            // Optionally, show an error message to the user
         }
     }
 
@@ -88,7 +88,21 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
         // Days of current month
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const daySchedules = filteredSchedules.filter(s => isDateInRange(dateStr, s)) // Filter from filteredSchedules
+            
+            // New filtering logic for daySchedules
+            const daySchedules = filteredSchedules.filter(s => {
+                const startDate = s.startDate || s.date;
+                const endDate = s.endDate || startDate;
+                const formattedStartDate = startDate ? startDate.substring(0, 10) : '';
+                const formattedEndDate = endDate ? endDate.substring(0, 10) : '';
+
+                if (formattedStartDate === formattedEndDate) { // Single day schedule
+                    return dateStr === formattedStartDate;
+                } else { // Multi-day schedule
+                    return dateStr === formattedStartDate || dateStr === formattedEndDate;
+                }
+            });
+            
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
 
             days.push(
@@ -98,16 +112,52 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
                     </span>
                     <div className="mt-2 space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
                         {daySchedules.map(schedule => {
-                            // Revert to original schedule.title display
+                            const startDate = schedule.startDate || schedule.date;
+                            const endDate = schedule.endDate || startDate;
+                            const formattedStartDate = startDate ? startDate.substring(0, 10) : '';
+                            const formattedEndDate = endDate ? endDate.substring(0, 10) : '';
+                            
+                            let displayTitle = schedule.title;
+                            let displayDescription = schedule.description || '';
+
+                            if (formattedStartDate !== formattedEndDate) { // Multi-day
+                                if (dateStr === formattedStartDate) {
+                                    displayTitle += ' 시작일';
+                                    if (schedule.startTime) {
+                                        displayDescription = `- 시작 시간: ${formatTime(schedule.startTime)}
+${displayDescription}`;
+                                    }
+                                } else if (dateStr === formattedEndDate) {
+                                    displayTitle += ' 마감일';
+                                    if (schedule.endTime) {
+                                        displayDescription = `- 종료 시간: ${formatTime(schedule.endTime)}
+${displayDescription}`;
+                                    }
+                                }
+                            } else { // Single-day
+                                if (schedule.startTime) {
+                                    displayDescription = `- 시작 시간: ${formatTime(schedule.startTime)}
+${displayDescription}`;
+                                }
+                                if (schedule.endTime && schedule.startTime !== schedule.endTime) { // Only add end time if different from start
+                                    displayDescription = `${displayDescription}
+- 종료 시간: ${formatTime(schedule.endTime)}`;
+                                } else if (schedule.endTime && !schedule.startTime) { // If only end time exists
+                                    displayDescription = `- 종료 시간: ${formatTime(schedule.endTime)}
+${displayDescription}`;
+                                }
+                            }
+
+
                             return (
                                 <div
                                     key={schedule.itemID}
                                     onClick={() => onScheduleClick(schedule)}
                                     className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
                                     style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
-                                    title={`${schedule.title}\n${schedule.description || ''}`}
+                                    title={`${displayTitle}\n${displayDescription || ''}`} // Use displayTitle and displayDescription for title attribute
                                 >
-                                    <span className="truncate">{schedule.title}</span> {/* Revert to schedule.title */}
+                                    <span className="truncate">{displayTitle}</span> {/* Use displayTitle */}
                                     <button
                                         onClick={(e) => handleDeleteSchedule(schedule.itemID, e)}
                                         className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
