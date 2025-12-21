@@ -2,6 +2,7 @@ import DOMPurify from "dompurify"
 import { ChatMessage, ChatSession, Bookmark, ExtractedSchedule, User, Schedule, Timetable } from '../types'
 import api from '../api/axiosInstance'
 
+// localStorage key 상수
 const CHAT_SESSION_KEY = 'askku_chat_session'
 const BOOKMARKS_KEY = 'askku_bookmarks'
 
@@ -9,6 +10,13 @@ const BOOKMARKS_KEY = 'askku_bookmarks'
 // CHAT SESSION MANAGEMENT
 // ------------------------------
 
+/**
+ * 새로운 채팅 세션 생성
+ * - 고유 session id 생성
+ * - 메시지 배열 초기화
+ * - 생성 시각 기록
+ * - localStorage에 즉시 저장
+ */
 export const createNewSession = (): ChatSession => {
     const session: ChatSession = {
         id: `session_${Date.now()}`,
@@ -19,15 +27,28 @@ export const createNewSession = (): ChatSession => {
     return session
 }
 
+/**
+ * 현재 채팅 세션 조회
+ * - localStorage에서 세션 불러오기
+ * - 없으면 null 반환
+ */
 export const getCurrentSession = (): ChatSession | null => {
     const json = localStorage.getItem(CHAT_SESSION_KEY)
     return json ? JSON.parse(json) : null
 }
 
+/**
+ * 채팅 세션 저장
+ * - session 객체를 JSON으로 직렬화하여 localStorage에 저장
+ */
 export const saveSession = (session: ChatSession): void => {
     localStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(session))
 }
 
+/**
+ * 채팅 세션 초기화
+ * - localStorage에서 현재 세션 제거
+ */
 export const clearSession = (): void => {
     localStorage.removeItem(CHAT_SESSION_KEY)
 }
@@ -36,6 +57,12 @@ export const clearSession = (): void => {
 // MESSAGE MANAGEMENT
 // ------------------------------
 
+/**
+ * 메시지 추가
+ * - 사용자 / AI 메시지 공통 처리
+ * - 세션이 없으면 새 세션 생성
+ * - 메시지 생성 후 세션에 push
+ */
 export const addMessage = (
     content: string,
     role: 'user' | 'assistant',
@@ -62,7 +89,11 @@ export const addMessage = (
     return message
 }
 
-// 메시지 업데이트 (스트리밍용)
+/**
+ * 메시지 업데이트 (스트리밍 응답용)
+ * - 특정 messageId의 content를 실시간으로 갱신
+ * - isLoading 상태도 함께 제어 가능
+ */
 export const updateMessage = (messageId: string, content: string, isLoading?: boolean): void => {
     const session = getCurrentSession()
     if (!session) return
@@ -77,7 +108,10 @@ export const updateMessage = (messageId: string, content: string, isLoading?: bo
     }
 }
 
-// 메시지 출처 업데이트
+/**
+ * 메시지 출처 정보 업데이트
+ * - RAG 응답에서 반환된 sources 저장
+ */
 export const updateMessageSources = (messageId: string, sources: any[]): void => {
     const session = getCurrentSession()
     if (!session) return
@@ -93,6 +127,11 @@ export const updateMessageSources = (messageId: string, sources: any[]): void =>
 // CLEAN MARKDOWN
 // ------------------------------
 
+/**
+ * 마크다운 / HTML 정제 함수
+ * - 줄바꿈 통일
+ * - DOMPurify를 사용해 XSS 방지
+ */
 const cleanMarkdown = (text: string): string => {
     if (!text) return "";
     return DOMPurify.sanitize(text.replace(/\r\n/g, "\n").trim(), {
@@ -104,6 +143,12 @@ const cleanMarkdown = (text: string): string => {
 // AI RESPONSE (STREAMING)
 // ------------------------------
 
+/**
+ * AI 응답 스트리밍 처리
+ * - Fetch API + ReadableStream 사용
+ * - SSE 형식(data: {...}) 이벤트 파싱
+ * - content / sources / done 이벤트 분리 처리
+ */
 export const generateAIResponseStream = async (
     userMessage: string,
     user: User | null,
@@ -119,22 +164,23 @@ export const generateAIResponseStream = async (
         let session = getCurrentSession()
         if (!session) session = createNewSession()
 
+        // 최근 대화 히스토리 (최대 10개)
         const recentHistory = session.messages.slice(-10).map(m => ({
             role: m.role,
             content: m.content
         }))
 
-        // RAG API는 8001 포트
+        // RAG 서버 엔드포인트
         const baseURL = 'http://localhost:4000'
         const url = `${baseURL}/api/rag/ask`
 
-        // JWT 토큰 가져오기
+        // JWT 토큰 확인
         const token = localStorage.getItem('token')
         if (!token) {
             throw new Error('로그인이 필요합니다.')
         }
 
-        // Fetch API로 스트리밍 요청
+        // 스트리밍 요청
         const response = await fetch(
         url,
         {
@@ -166,6 +212,7 @@ export const generateAIResponseStream = async (
 
         let buffer = ''
 
+        // 스트리밍 루프
         while (true) {
             const { done, value } = await reader.read()
 
@@ -210,7 +257,11 @@ export const generateAIResponseStream = async (
     }
 }
 
-// 기존 non-streaming 버전 (호환성 유지)
+/**
+ * 기존 non-streaming 방식 (호환성 유지)
+ * - 내부적으로 streaming API 사용
+ * - 모든 chunk를 합쳐서 최종 응답 반환
+ */
 export const generateAIResponse = async (
     userMessage: string
 ): Promise<{ text: string; format: 'markdown' | 'sources' | 'text' }> => {
@@ -244,11 +295,19 @@ export const generateAIResponse = async (
 // BOOKMARKS (SERVER + LOCAL)
 // ------------------------------
 
+/**
+ * localStorage에 저장된 북마크 목록 조회
+ */
 export const getBookmarks = (): Bookmark[] => {
     const json = localStorage.getItem(BOOKMARKS_KEY)
     return json ? JSON.parse(json) : []
 }
 
+/**
+ * 북마크 추가
+ * - 서버에 북마크 저장
+ * - 성공 시 localStorage에도 동기화
+ */
 export const addBookmark = async (
     messageId: string,  // 세션 메시지 ID (북마크 표시용)
     question: string,
@@ -285,6 +344,10 @@ export const addBookmark = async (
     }
 }
 
+/**
+ * 북마크 삭제
+ * - 서버 + localStorage + 세션 상태 동기화
+ */
 export const removeBookmark = async (bookmarkId: string): Promise<void> => {
     try {
         const bookmarks = getBookmarks()
@@ -319,6 +382,11 @@ export const removeBookmark = async (bookmarkId: string): Promise<void> => {
     }
 }
 
+/**
+ * 메시지 북마크 토글
+ * - assistant 메시지만 북마크 가능
+ * - user 질문 + assistant 답변 쌍으로 저장
+ */
 export const toggleMessageBookmark = async (messageId: string): Promise<void> => {
     const session = getCurrentSession()
     if (!session) return
@@ -339,6 +407,10 @@ export const toggleMessageBookmark = async (messageId: string): Promise<void> =>
     }
 }
 
+/**
+ * 모든 북마크 삭제
+ * - 서버 + localStorage + 세션 상태 일괄 정리
+ */
 export const clearAllBookmarks = async (): Promise<void> => {
     try {
         const bookmarks = getBookmarks()
@@ -371,6 +443,12 @@ export const clearAllBookmarks = async (): Promise<void> => {
 // SCHEDULE EXTRACTION
 // ------------------------------
 
+/**
+ * 대화 기반 일정 추출
+ * - 질문 + 답변을 서버로 전달
+ * - 추출된 일정 목록 반환
+ * - 프론트에서 사용할 고유 ID 부여
+ */
 export const extractSchedulesFromConversation = async (
     question: string,
     answer: string
