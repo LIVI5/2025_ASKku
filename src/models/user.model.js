@@ -8,6 +8,9 @@ module.exports = (sequelize) => {
       email: { type: DataTypes.STRING(254), unique: true, allowNull: false },
       name: { type: DataTypes.STRING(50), allowNull: true },
       password_hash: { type: DataTypes.STRING(255), allowNull: false },
+      campus: { type: DataTypes.STRING(50), allowNull: true },
+      admissionYear: { type: DataTypes.INTEGER, allowNull: true },
+      semester: { type: DataTypes.INTEGER, allowNull: true },
       department: { type: DataTypes.STRING(80), allowNull: true },
       campus: { type: DataTypes.STRING(50), allowNull: true },  // 추가: 캠퍼스 정보
       admissionYear: { type: DataTypes.INTEGER, allowNull: true },  // 추가: 입학년도

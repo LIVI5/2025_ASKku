@@ -8,6 +8,12 @@ from langchain_core.documents import Document
 
 BASE_URL = "https://www.skku.edu/skku/campus/skk_comm/notice01.do"
 
+def _safe_quit(driver):
+    """드라이버 종료(예외 무시)"""
+    try:
+        driver.quit()
+    except Exception:
+        pass
 
 def crawl_notices(
     max_pages: int = 30,
@@ -22,105 +28,107 @@ def crawl_notices(
         existing_post_nums = set()
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-    notices = []
-    article_limit = 10  # 페이지당 게시글 개수
+    try:
+        notices = []
+        article_limit = 10  # 페이지당 게시글 개수
 
-    for page_num in range(max_pages):
-        offset = page_num * article_limit
-        list_url = (
-            f"{BASE_URL}?mode=list&articleLimit={article_limit}"
-            f"&article.offset={offset}"
-        )
-
-        print(f"\n=== Crawling page {page_num + 1}/{max_pages} (offset: {offset}) ===")
-        driver.get(list_url)
-        time.sleep(delay)
-
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-
-        # articleNo= 만 포함된 링크 모두
-        anchors = soup.select("a[href*='articleNo=']")
-
-        print(f"  Found {len(anchors)} <a> with articleNo=")
-        if not anchors:
-            # 디버깅용: a 태그 출력
-            all_as = soup.select("a")
-            print(f"  Total <a> tags on page: {len(all_as)}")
-            for a in all_as[:30]:
-                print("TEXT:", a.get_text(strip=True))
-                print("HREF:", a.get("href"))
-                print("ONCLICK:", a.get("onclick"))
-                print("-" * 40)
-            print("No more notice links found, stopping.")
-            break
-
-        page_notices = []
-        found_existing = False  # ✨ 기존 글 발견 플래그
-        skipped_items = 0
-
-        for a in anchors:
-            href = a.get("href", "").strip()
-            if not href:
-                continue
-
-            title = a.get_text(strip=True)
-            link = urljoin(BASE_URL, href)
-
-            # articleNo 추출
-            parsed = urlparse(link)
-            qs = parse_qs(parsed.query)
-            article_no = qs.get("articleNo", [None])[0]
-
-            post_id = article_no or link
-
-            # ✨ 중복 체크 - 발견 시 즉시 중단
-            if post_id in existing_post_nums:
-                print(f"  → Found existing post: {title} ({post_id})")
-                print(f"  → Stopping crawl (all newer posts already collected)")
-                found_existing = True
-                break  # 현재 페이지 루프 중단
-
-            page_notices.append(
-                {
-                    "post_id": post_id,
-                    "title": title,
-                    "link": link,
-                }
+        for page_num in range(max_pages):
+            offset = page_num * article_limit
+            list_url = (
+                f"{BASE_URL}?mode=list&articleLimit={article_limit}"
+                f"&article.offset={offset}"
             )
 
-        print(f"  New items on page: {len(page_notices)}, Skipped: {skipped_items}")
+            print(f"\n=== Crawling page {page_num + 1}/{max_pages} (offset: {offset}) ===")
+            driver.get(list_url)
+            time.sleep(delay)
 
-        # ✨ 기존 글을 만났으면 크롤링 완전 종료
-        if found_existing:
-            driver.quit()
-            print("\n=== Crawling stopped (found existing post) ===")
-            print(f"Total new notices crawled: {len(notices)}")
-            return notices
+            soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # 상세 페이지 크롤링
-        for idx, notice_info in enumerate(page_notices, 1):
-            print(f"  [{idx}/{len(page_notices)}] Crawling: {notice_info['title']}")
-            body, meta = crawl_notice_body(driver, notice_info["link"], delay=delay)
+            # articleNo= 만 포함된 링크 모두
+            anchors = soup.select("a[href*='articleNo=']")
 
-            notices.append(
-                {
-                    "post_id": notice_info["post_id"],
-                    "post_num": notice_info["post_id"],
-                    "title": notice_info["title"],
-                    "link": notice_info["link"],
-                    "body": body,
-                    "category": meta.get("category"),
-                    "date": meta.get("date"),
-                    "department": meta.get("department"),
-                }
-            )
-            existing_post_nums.add(notice_info["post_id"])
-            print(f"    ✓ Completed ({notice_info['post_id']})")
+            print(f"  Found {len(anchors)} <a> with articleNo=")
+            if not anchors:
+                # 디버깅용: a 태그 출력
+                all_as = soup.select("a")
+                print(f"  Total <a> tags on page: {len(all_as)}")
+                for a in all_as[:30]:
+                    print("TEXT:", a.get_text(strip=True))
+                    print("HREF:", a.get("href"))
+                    print("ONCLICK:", a.get("onclick"))
+                    print("-" * 40)
+                print("No more notice links found, stopping.")
+                break
 
-    driver.quit()
-    print("\n=== Crawling completed ===")
-    print(f"Total notices crawled: {len(notices)}")
-    return notices
+            page_notices = []
+            found_existing = False
+            skipped_items = 0
+
+            for a in anchors:
+                href = a.get("href", "").strip()
+                if not href:
+                    continue
+
+                title = a.get_text(strip=True)
+                link = urljoin(BASE_URL, href)
+
+                # articleNo 추출
+                parsed = urlparse(link)
+                qs = parse_qs(parsed.query)
+                article_no = qs.get("articleNo", [None])[0]
+
+                post_id = article_no or link
+
+                # 중복 체크 - 발견 시 즉시 중단
+                if post_id in existing_post_nums:
+                    print(f"  → Found existing post: {title} ({post_id})")
+                    print(f"  → Stopping crawl (all newer posts already collected)")
+                    found_existing = True
+                    break 
+
+                page_notices.append(
+                    {
+                        "post_id": post_id,
+                        "title": title,
+                        "link": link,
+                    }
+                )
+
+            print(f"  New items on page: {len(page_notices)}, Skipped: {skipped_items}")
+
+            if found_existing:
+                driver.quit()
+                print("\n=== Crawling stopped (found existing post) ===")
+                print(f"Total new notices crawled: {len(notices)}")
+                return notices
+
+            # 상세 페이지 크롤링
+            for idx, notice_info in enumerate(page_notices, 1):
+                print(f"  [{idx}/{len(page_notices)}] Crawling: {notice_info['title']}")
+                body, meta = crawl_notice_body(driver, notice_info["link"], delay=delay)
+
+                notices.append(
+                    {
+                        "post_id": notice_info["post_id"],
+                        "post_num": notice_info["post_id"],
+                        "title": notice_info["title"],
+                        "link": notice_info["link"],
+                        "body": body,
+                        "category": meta.get("category"),
+                        "date": meta.get("date"),
+                        "department": meta.get("department"),
+                    }
+                )
+                existing_post_nums.add(notice_info["post_id"])
+                print(f"    ✓ Completed ({notice_info['post_id']})")
+
+        print("\n=== Crawling completed ===")
+        print(f"Total notices crawled: {len(notices)}")
+        return notices
+
+    finally:
+        _safe_quit(driver)
 
 
 def crawl_notice_body(driver, link: str, delay: int = 1):
@@ -182,24 +190,24 @@ def notices_to_documents(notices):
             Document(
                 page_content=body,
                 metadata={
+                    "board_name": "성균관대 대표공지사항",
                     "title": n.get("title", ""),
                     "post_id": n.get("post_id", ""),
                     "link": n.get("link", ""),
                     "category": n.get("category", ""),
                     "date": n.get("date", ""),
                     "department": n.get("department", ""),
-                    "source": "SKKU_NOTICE_MAIN",
                 },
             )
         )
     return docs
 
-
+"""테스트용 실행 코드"""
 if __name__ == "__main__":
     existing_ids = set()
 
     notices = crawl_notices(
-        max_pages=2,
+        max_pages=3,
         delay=2,
         existing_post_nums=existing_ids,
     )
