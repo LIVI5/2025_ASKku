@@ -1,5 +1,10 @@
-import { Fragment } from 'react'
 import { TimetableItem } from '../../types'
+
+/**
+ * 시간표 뷰 컴포넌트
+ * - 주간 시간표 형식 (월~금, 09:00~18:00)
+ * - 과목 블록 시각화 및 삭제 기능
+ */
 
 interface TimetableViewProps {
     onAddClick: () => void;
@@ -7,146 +12,110 @@ interface TimetableViewProps {
     onDeleteItem: (id: number) => void;
 }
 
-const HOUR_HEIGHT = 64; // Height of one hour slot in pixels (e.g., 64px for h-16 equivalent)
-const MINUTES_IN_HOUR = 60;
-const weekDays = ['월', '화', '수', '목', '금'];
+const HOUR_HEIGHT = 64;
+const START_HOUR = 9;
+const END_HOUR = 22;
+const DAY_HEADERS = ['월', '화', '수', '목', '금'];
 
-const getTimeInMinutes = (time: string): number => {
-    if (!time) return 0;
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * MINUTES_IN_HOUR + minutes;
-};
-
-
-export default function TimetableView({ onAddClick, items = [], onDeleteItem }: TimetableViewProps) {
-
-    // --- Dynamic Timetable Hours Logic ---
-    const TIMETABLE_START_HOUR = 9; // 09:00
-
-    // Check if there are any classes ending after 6 PM
-    const hasLateClasses = items.some(item => getTimeInMinutes(item.endTime) > 18 * 60);
-
-    // Set end hour to 10 PM if there are late classes, otherwise 6 PM
-    const TIMETABLE_END_HOUR = hasLateClasses ? 21 : 18;
-
-    const hourLabels = Array.from({ length: TIMETABLE_END_HOUR - TIMETABLE_START_HOUR + 1 }, (_, i) => {
-        const hour = TIMETABLE_START_HOUR + i;
-        return `${hour.toString().padStart(2, '0')}:00`;
-    });
-    // --- End Dynamic Logic ---
-
-    const calculateEventStyles = (item: TimetableItem): React.CSSProperties => {
-        const startMinutes = getTimeInMinutes(item.startTime);
-        const endMinutes = getTimeInMinutes(item.endTime);
-        const durationMinutes = endMinutes - startMinutes;
-
-        const timetableStartMinutes = TIMETABLE_START_HOUR * MINUTES_IN_HOUR;
-
-        const top = ((startMinutes - timetableStartMinutes) / MINUTES_IN_HOUR) * HOUR_HEIGHT;
-        const height = (durationMinutes / MINUTES_IN_HOUR) * HOUR_HEIGHT;
-
-        return {
-            top: `${top}px`,
-            height: `${height}px`,
-            position: 'absolute' as const,
-            left: '0',
-            right: '0',
-        };
+export default function TimetableView({ onAddClick, items, onDeleteItem }: TimetableViewProps) {
+    const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
     };
 
+    const getTopPosition = (startTime: string): number => {
+        const startMinutes = timeToMinutes(startTime);
+        const baseMinutes = START_HOUR * 60;
+        const offsetMinutes = startMinutes - baseMinutes;
+        return (offsetMinutes / 60) * HOUR_HEIGHT;
+    };
+
+    const getHeight = (startTime: string, endTime: string): number => {
+        const startMinutes = timeToMinutes(startTime);
+        const endMinutes = timeToMinutes(endTime);
+        const durationMinutes = endMinutes - startMinutes;
+        return (durationMinutes / 60) * HOUR_HEIGHT;
+    };
+
+    const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">주간 시간표</h3>
+        <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold text-gray-800">시간표</h2>
                 <button
                     onClick={onAddClick}
-                    className="px-4 py-2 bg-askku-primary text-white text-sm font-medium rounded-lg hover:bg-askku-secondary transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors"
                 >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    <span className="relative -top-[1px]">수업 추가</span>
+                    + 수업 추가
                 </button>
             </div>
 
-            {/* Timetable Grid and Events */}
-            <div className="overflow-x-auto relative">
-                <div className="grid border-collapse" style={{ gridTemplateColumns: '80px repeat(5, 1fr)' }}>
-                    {/* Headers */}
-                    <div className="border border-gray-200 bg-gray-50 p-2 text-sm font-semibold text-gray-700 text-center">
-                        시간
-                    </div>
-                    {weekDays.map(day => (
-                        <div key={day} className="border border-gray-200 bg-gray-50 p-2 text-sm font-semibold text-gray-700 text-center">
-                            {day}
-                        </div>
-                    ))}
-
-                    {/* Time labels and Day Grid Cells */}
-                    {hourLabels.map((hour) => (
-                        <Fragment key={hour}>
+            <div className="flex-1 overflow-auto p-6">
+                <div className="flex gap-2">
+                    <div className="w-16 flex-shrink-0">
+                        <div className="h-12"></div>
+                        {hours.map((hour) => (
                             <div
-                                key={`time-${hour}`}
-                                className="border border-gray-200 bg-gray-50 p-2 text-xs text-gray-600 text-center font-medium relative"
-                                style={{ height: `${HOUR_HEIGHT}px` }}
+                                key={hour}
+                                className="text-sm text-gray-600 text-right pr-2"
+                                style={{ height: `${HOUR_HEIGHT}px`, lineHeight: `${HOUR_HEIGHT}px` }}
                             >
-                                {hour}
+                                {hour.toString().padStart(2, '0')}:00
                             </div>
-                            {weekDays.map((day) => (
-                                <div
-                                    key={`${day}-grid-cell-${hour}`}
-                                    className="border border-gray-200 p-1"
-                                    style={{ height: `${HOUR_HEIGHT}px` }}
-                                >
-                                    {/* These are just grid cells for visual lines */}
-                                </div>
-                            ))}
-                        </Fragment>
-                    ))}
-                </div>
+                        ))}
+                    </div>
 
-                {/* Absolute positioned events layer */}
-                <div
-                    className="absolute top-[37.5px] left-[80px] right-0 bottom-0 grid" // Header height adjusted to 37.5px
-                    style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
-                >
-                    {weekDays.map((day) => (
-                        <div key={`events-column-${day}`} className="relative h-full">
-                            {items
-                                .filter(item => item.dayOfWeek === day)
-                                .map(item => (
-                                    <div
-                                        key={item.itemID}
-                                        className="group relative text-gray-800 border border-gray-200 px-1 py-2"
-                                        style={{ ...calculateEventStyles(item), backgroundColor: item.color || '#DBEAFE' }}
-                                    >
-                                        <div className="text-xs font-semibold line-clamp-1">
-                                            {item.courseName}
-                                        </div>
-                                        <div className="text-xs line-clamp-1">
-                                            {item.location}
-                                        </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onDeleteItem(item.itemID);
+                    {DAY_HEADERS.map((day) => {
+                        const dayItems = items.filter((item) => item.dayOfWeek === day);
+                        return (
+                            <div key={day} className="flex-1 relative border-l border-gray-200">
+                                <div className="h-12 flex items-center justify-center font-bold text-gray-700 border-b border-gray-200">
+                                    {day}
+                                </div>
+
+                                <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * HOUR_HEIGHT}px` }}>
+                                    {hours.map((hour) => (
+                                        <div
+                                            key={hour}
+                                            className="border-b border-gray-100"
+                                            style={{ height: `${HOUR_HEIGHT}px` }}
+                                        ></div>
+                                    ))}
+
+                                    {dayItems.map((item) => (
+                                        <div
+                                            key={item.itemID}
+                                            className="absolute left-0 right-0 mx-1 rounded-lg shadow-md overflow-hidden group cursor-pointer"
+                                            style={{
+                                                top: `${getTopPosition(item.startTime)}px`,
+                                                height: `${getHeight(item.startTime, item.endTime)}px`,
+                                                backgroundColor: item.color || '#DBEAFE'
                                             }}
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 shadow-sm hover:bg-red-50 text-gray-700"
                                         >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                                <path
-                                                    d="M6 18L18 6M6 6l12 12"
-                                                    stroke="currentColor"
-                                                    strokeWidth="2"
-                                                    strokeLinecap="round"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                ))}
-                        </div>
-                    ))}
+                                            <div className="p-2 h-full flex flex-col justify-between">
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-800 leading-tight line-clamp-2">
+                                                        {item.alias || item.courseName}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        {item.startTime.substring(0, 5)} - {item.endTime.substring(0, 5)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600">{item.location}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => onDeleteItem(item.itemID)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-800 text-xs font-medium"
+                                                >
+                                                    삭제
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

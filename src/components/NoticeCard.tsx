@@ -1,11 +1,21 @@
 import { Notice } from '../types'
 
+/**
+ * 공지사항 카드 컴포넌트
+ * - 출처별 다른 아이콘과 색상 테마 적용
+ * - 호버 시 애니메이션 효과
+ * - 클릭 시 공지사항 URL로 이동 (새 탭)
+ */
+
 interface NoticeCardProps {
     notice: Notice
 }
 
 export default function NoticeCard({ notice }: NoticeCardProps) {
-    // 출처별 설정 (아이콘, 색상, 배경 등)
+    /**
+     * 출처별 시각적 설정 가져오기
+     * - 아이콘, 배경색, 테두리색, 강조색, 텍스트색
+     */
     const getSourceConfig = (source: string) => {
         const configs: Record<string, {
             icon: string
@@ -90,15 +100,14 @@ export default function NoticeCard({ notice }: NoticeCardProps) {
                 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 
                 cursor-pointer group relative overflow-hidden`}
         >
-            {/* Accent bar (호버 시 애니메이션) */}
+            {/* 하단 강조 바 (호버 시 좌→우 애니메이션) */}
             <div
                 className={`absolute bottom-0 left-0 h-1 ${config.accent} 
                     w-0 group-hover:w-full transition-all duration-500 ease-out`}
             />
 
-            {/* Content */}
             <div className="flex items-start gap-3">
-                {/* 아이콘 */}
+                {/* 출처 아이콘 */}
                 <span className="text-3xl flex-shrink-0 transform group-hover:scale-110 transition-transform duration-300">
                     {config.icon}
                 </span>

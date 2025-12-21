@@ -1,5 +1,11 @@
 import { Schedule } from '../../types'
 
+/**
+ * 일정 상세 모달
+ * - 캘린더 일정 상세 정보 표시
+ * - 제목, 날짜/시간, 위치, 설명 등
+ */
+
 interface ScheduleDetailModalProps {
     isOpen: boolean
     onClose: () => void
@@ -41,20 +47,18 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
 
     const dateRange = sameDay ? startDate : `${startDate} ~ ${endDate}`
 
-    // Determine the type display text
     const typeDisplayText = schedule.type === 'subject'
         ? `${typeToKorean[schedule.type]} - ${schedule.courseName || '과목 없음'}`
         : typeToKorean[schedule.type];
 
-    // Build display description with time information
     let displayDescription = schedule.description || '';
     let timeInfo = '';
 
-    if (!schedule.allDay) { // Only add time info if it's not an all-day event
+    if (!schedule.allDay) {
         const startTime = formatTime(schedule.startTime);
         const endTime = formatTime(schedule.endTime);
 
-        if (sameDay) { // Single-day schedule
+        if (sameDay) {
             if (startTime && endTime) {
                 timeInfo += `- 시작 시간: ${startTime}\n- 종료 시간: ${endTime}\n`;
             } else if (startTime) {
@@ -62,9 +66,7 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
             } else if (endTime) {
                 timeInfo += `- 종료 시간: ${endTime}\n`;
             }
-        } else { // Multi-day schedule - description is not date-specific here
-            // Time info for multi-day schedules is handled in CalendarView description for start/end days
-            // For the full detail modal, we might want to show the full time range if it's not all-day
+        } else {
             if (startTime && endTime) {
                 timeInfo += `- 시작 시간: ${startTime}\n- 종료 시간: ${endTime}\n`;
             } else if (startTime) {
@@ -95,7 +97,6 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                         <label className="block text-sm font-medium text-gray-500">날짜</label>
                         <p className="text-gray-800">{dateRange}</p>
                     </div>
-                    {/* Removed time display section */}
                     <div>
                         <label className="block text-sm font-medium text-gray-500">유형</label>
                         <p className="text-gray-800">{typeDisplayText}</p>
@@ -107,7 +108,7 @@ export default function ScheduleDetailModal({ isOpen, onClose, schedule }: Sched
                             <p className="text-gray-800">{schedule.location}</p>
                         </div>
                     )}
-                    {displayDescription && ( // Use displayDescription here
+                    {displayDescription && (
                         <div>
                             <label className="block text-sm font-medium text-gray-500">설명</label>
                             <p className="text-gray-800 whitespace-pre-wrap">{displayDescription}</p>

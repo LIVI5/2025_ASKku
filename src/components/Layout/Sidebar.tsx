@@ -5,6 +5,13 @@ import { useUser } from '../../contexts/UserContext'
 import PasswordVerificationModal from '../Modals/PasswordVerificationModal'
 import EditPersonalInfoModal from '../MyPage/EditPersonalInfoModal'
 
+/**
+ * 사이드바 컴포넌트
+ * - 로고 및 주요 네비게이션 (홈, 채팅, 마이페이지)
+ * - 사용자 프로필 정보 표시
+ * - 프로필 수정 버튼 (비밀번호 확인 후 수정 가능)
+ */
+
 export default function Sidebar() {
     const location = useLocation()
     const { user, loading } = useUser()
@@ -18,8 +25,6 @@ export default function Sidebar() {
     }
 
     const handlePasswordVerificationSuccess = (password: string) => {
-        // In a real app, you'd send this password to the backend for verification
-        // For now, we'll just close the verification modal and open the edit modal
         console.log('Password verified (placeholder):', password);
         setShowPasswordVerificationModal(false)
         setShowEditInformationModal(true)
@@ -27,13 +32,11 @@ export default function Sidebar() {
 
     const handleCloseEditInformationModal = () => {
         setShowEditInformationModal(false)
-        // Optionally re-fetch user data if there was an API to save changes
-        // fetchUser();
     }
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0">
-            {/* Logo */}
+            {/* 로고 */}
             <div className="h-[72px] px-6 border-b border-gray-200 flex items-center">
                 <Link to="/home" className="flex items-center gap-2">
                     <img src={logoImage} alt="ASKku" className="w-8 h-8" />
@@ -41,7 +44,7 @@ export default function Sidebar() {
                 </Link>
             </div>
 
-            {/* Navigation */}
+            {/* 네비게이션 메뉴 */}
             <nav className="flex-1 p-3">
                 <Link
                     to="/home"
@@ -103,7 +106,7 @@ export default function Sidebar() {
                 </Link>
             </nav>
 
-            {/* User Profile */}
+            {/* 사용자 프로필 */}
             <div className="h-[80px] px-6 border-t border-gray-200 flex items-center">
                 <div className="flex items-center gap-3 w-full">
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -141,12 +144,14 @@ export default function Sidebar() {
                 </div>
             </div>
 
+            {/* 비밀번호 확인 모달 */}
             <PasswordVerificationModal
                 isOpen={showPasswordVerificationModal}
                 onClose={() => setShowPasswordVerificationModal(false)}
                 onSuccess={handlePasswordVerificationSuccess}
             />
 
+            {/* 개인정보 수정 모달 */}
             <EditPersonalInfoModal
                 isOpen={showEditInformationModal}
                 onClose={handleCloseEditInformationModal}

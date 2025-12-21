@@ -49,8 +49,8 @@ export type ChatMessage = {
     timestamp: string;
     isBookmarked: boolean;
     format: 'text' | 'markdown' | 'sources';
-    isLoading?: boolean; // 스트리밍 로딩 중 표시
-    sources?: any[]; // RAG 출처 정보
+    isLoading?: boolean;
+    sources?: any[];
 };
 
 export interface Bookmark {
@@ -71,21 +71,21 @@ export type ChatSession = {
 };
 
 export interface Schedule {
-    itemID: string // Changed from 'id' to 'itemID'
+    itemID: string
     title: string
-    date: string // YYYY-MM-DD (legacy single-day)
-    startDate?: string // YYYY-MM-DD
-    endDate?: string // YYYY-MM-DD
-    startTime?: string // HH:mm
-    endTime?: string // HH:mm
+    date: string
+    startDate?: string
+    endDate?: string
+    startTime?: string
+    endTime?: string
     allDay?: boolean
     location?: string
-    sourceId?: string // extracted schedule id from chat
+    sourceId?: string
     type: 'personal' | 'academic' | 'subject' | 'event' | 'other'
     description?: string
     color?: string
     subject?: string
-    courseName?: string; // New field for subject-type schedules
+    courseName?: string;
 }
 
 export type ExtractedSchedule = {
@@ -99,7 +99,7 @@ export type ExtractedSchedule = {
     description?: string;
     type?: string;
     location?: string;
-    color?: string; // Optional color for extracted schedules
+    color?: string;
 };
 
 export interface Timetable {
@@ -114,8 +114,8 @@ export interface TimetableItem {
     timetableID: number;
     courseName: string;
     dayOfWeek: '월' | '화' | '수' | '목' | '금';
-    startTime: string; // HH:mm:ss
-    endTime: string; // HH:mm:ss
+    startTime: string;
+    endTime: string;
     location: string;
     alias?: string;
     color?: string;
@@ -125,7 +125,7 @@ export interface Calendar {
     calendarID: number;
     userID: number;
     title: string;
-    schedules: Schedule[]; // Changed to lowercase to match backend alias
+    schedules: Schedule[];
     createdAt: string;
     updatedAt: string;
 }

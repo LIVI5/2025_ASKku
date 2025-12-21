@@ -2,6 +2,12 @@ import { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 
+/**
+ * 메인 레이아웃 컴포넌트
+ * - 사이드바 + 콘텐츠 영역 구조
+ * - 홈 페이지는 상단 여백 추가
+ */
+
 interface MainLayoutProps {
     children: ReactNode
 }

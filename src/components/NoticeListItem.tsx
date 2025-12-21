@@ -1,11 +1,20 @@
 import { Notice } from '../types'
 
+/**
+ * 공지사항 리스트 아이템 컴포넌트
+ * - 리스트 형태로 공지사항 표시
+ * - 출처별 색상 테마 적용
+ * - 조회수 표시
+ */
+
 interface NoticeListItemProps {
     notice: Notice
 }
 
 export default function NoticeListItem({ notice }: NoticeListItemProps) {
-    // 출처별 설정 (NoticeCard와 동일)
+    /**
+     * 출처별 시각적 설정
+     */
     const getSourceConfig = (source: string) => {
         const configs: Record<string, {
             icon: string
@@ -89,15 +98,14 @@ export default function NoticeListItem({ notice }: NoticeListItemProps) {
                 hover:bg-opacity-80 cursor-pointer transition-all duration-300 
                 group relative overflow-hidden`}
         >
-            {/* Accent bar */}
+            {/* 하단 강조 바 */}
             <div
                 className={`absolute bottom-0 left-0 h-1 ${config.accent} 
                     w-0 group-hover:w-full transition-all duration-500 ease-out`}
             />
 
-            {/* Content */}
             <div className="flex items-center gap-4">
-                {/* 아이콘 */}
+                {/* 출처 아이콘 */}
                 <span className="text-3xl flex-shrink-0 transform group-hover:scale-110 transition-transform duration-300">
                     {config.icon}
                 </span>

@@ -1,5 +1,11 @@
 import logoImage from '../../assets/logo.svg'
 
+/**
+ * 인증 페이지 헤더 컴포넌트
+ * - 로그인/회원가입 페이지 상단에 표시
+ * - ASKku 로고 및 플랫폼 설명
+ */
+
 export default function AuthHeader() {
     return (
         <header className="bg-white shadow-sm">

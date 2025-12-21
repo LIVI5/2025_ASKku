@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { addTimetableItem } from '../../services/myPageService'
 import { TimetableItem } from '../../types'
 
+/**
+ * 수업 추가 모달 컴포넌트
+ * - 시간표에 새 과목 추가
+ * - 과목명, 강의실, 요일, 시간, 색상 입력
+ * - 시간 검증 (09:00~18:00)
+ */
+
 interface AddCourseModalProps {
     isOpen: boolean
     onClose: () => void
@@ -16,7 +23,7 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
     const [endTime, setEndTime] = useState('10:30')
     const [alias, setAlias] = useState('')
     const [color, setColor] = useState('#DBEAFE')
-    
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -29,9 +36,8 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError(null); // Clear previous errors
+        setError(null);
 
-        // --- Validation ---
         if (!courseName || !location) {
             setError('과목명과 강의실을 모두 입력해주세요.');
             return;
@@ -52,7 +58,6 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
             setError('시작 시간은 종료 시간보다 빨라야 합니다.');
             return;
         }
-        // --- End Validation ---
 
         setLoading(true)
         try {
@@ -68,7 +73,6 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
 
             const newItem = await addTimetableItem(newItemPayload as Omit<TimetableItem, 'itemID' | 'timetableID'>);
 
-            // Reset form on success
             setCourseName('')
             setLocation('')
             setDayOfWeek('월')
@@ -76,7 +80,7 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
             setEndTime('10:30')
             setAlias('')
             setColor('#DBEAFE')
-            
+
             onSuccess(newItem)
             onClose()
 
@@ -114,7 +118,7 @@ export default function AddCourseModal({ isOpen, onClose, onSuccess }: AddCourse
                             required
                         />
                     </div>
-                     <div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">별칭 (선택)</label>
                         <input
                             type="text"

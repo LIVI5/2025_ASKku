@@ -1,3 +1,9 @@
+/**
+ * 푸터 컴포넌트
+ * - 저작권 정보 표시
+ * - 이용약관, 개인정보처리방침 등 링크
+ */
+
 export default function Footer() {
     return (
         <footer className="bg-white border-t mt-auto">

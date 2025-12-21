@@ -40,7 +40,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         '자연과학캠퍼스',
     ]
 
-    // Generate admission year options (current year - 10 to current year)
     const currentYear = new Date().getFullYear()
     const admissionYears = Array.from({ length: 11 }, (_, i) => currentYear - i)
 
@@ -106,7 +105,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                 })
 
                 if (response.success) {
-                    // Show success message and redirect to login
                     alert(response.message || '회원가입이 완료되었습니다. 로그인해주세요.')
                     onSwitchToLogin()
                 } else {
@@ -131,7 +129,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             [name]: type === 'checkbox' ? checked : type === 'select-one' && (name === 'currentGrade' || name === 'currentSemester') ? Number(value) : value,
         }))
 
-        // Clear error when user starts typing
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: '' }))
         }

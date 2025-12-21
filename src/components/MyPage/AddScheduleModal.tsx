@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import { addPrimaryScheduleItem, getTimetable } from '../../services/myPageService'
 import { TimetableItem, Schedule } from '../../types'
 
+/**
+ * 일정 추가 모달 컴포넌트
+ * - 캘린더에 새 일정 추가
+ * - 단일 날짜/기간지정 가능
+ * - 과목 일정은 시간표에서 과목 선택
+ */
+
 interface AddScheduleModalProps {
     isOpen: boolean
     onClose: () => void
@@ -18,17 +25,14 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
     const [isTimetableLoading, setIsTimetableLoading] = useState(false)
     const [selectedSubject, setSelectedSubject] = useState('')
 
-    // New states for duration mode
     const [isDurationMode, setIsDurationMode] = useState(false)
-    const [singleDate, setSingleDate] = useState('') // Used when isDurationMode is false
-    const [multiStartDate, setMultiStartDate] = useState('') // Used when isDurationMode is true
-    const [multiEndDate, setMultiEndDate] = useState('') // Used when isDurationMode is true
+    const [singleDate, setSingleDate] = useState('')
+    const [multiStartDate, setMultiStartDate] = useState('')
+    const [multiEndDate, setMultiEndDate] = useState('')
 
-    // Add loading and error states for API calls
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Initialize dates when modal opens or duration mode changes
     useEffect(() => {
         if (isOpen) {
             const today = new Date().toISOString().split('T')[0];
@@ -54,8 +58,8 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                     setTimetableItems(timetable.items || []);
                 } catch (error) {
                     console.error("Failed to fetch timetable items for schedule modal", error);
-                    setError('시간표 과목을 불러오는데 실패했습니다.'); // Set error message
-                    setTimetableItems([]); // Clear items on error
+                    setError('시간표 과목을 불러오는데 실패했습니다.');
+                    setTimetableItems([]);
                 } finally {
                     setIsTimetableLoading(false);
                 }
@@ -73,9 +77,8 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         setColor('#3B82F6')
         setSelectedSubject('')
         setTimetableItems([])
-        setError(null); // Clear error on reset
+        setError(null);
 
-        // Reset duration mode states
         setIsDurationMode(false);
         const today = new Date().toISOString().split('T')[0];
         setSingleDate(today);
@@ -85,7 +88,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError(null); // Clear previous errors
+        setError(null);
 
         let finalStartDate = '';
         let finalEndDate = '';
@@ -115,7 +118,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
             finalEndDate = multiEndDate;
         }
 
-        setLoading(true); // Start loading
+        setLoading(true);
 
         const scheduleData: Omit<Schedule, 'itemID'> = {
             title,
@@ -124,7 +127,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
             color,
             startDate: finalStartDate,
             endDate: finalEndDate,
-            date: finalStartDate, // 'date' is still required by Schedule type, using startDate as fallback
+            date: finalStartDate,
         }
 
         if (type === 'subject') {
@@ -132,15 +135,15 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
         }
 
         try {
-            await addPrimaryScheduleItem(scheduleData); // Call new API function
+            await addPrimaryScheduleItem(scheduleData);
             resetState()
             onSuccess()
             onClose()
         } catch (err) {
             console.error("Failed to add schedule:", err);
-            setError('일정 추가에 실패했습니다. 다시 시도해주세요.'); // Set error message
+            setError('일정 추가에 실패했습니다. 다시 시도해주세요.');
         } finally {
-            setLoading(false); // End loading
+            setLoading(false);
         }
     }
 
@@ -149,7 +152,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">일정 추가</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {error && <p className="text-red-500 text-sm text-center">{error}</p>} {/* Display error */}
+                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
                         <input
@@ -252,7 +255,7 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                                     <>
                                         <option value="">과목 없음</option>
                                         {timetableItems
-                                            .filter(item => item && item.courseName && item.courseName.trim() !== '') // Filter out empty courseNames and handle null/undefined items
+                                            .filter(item => item && item.courseName && item.courseName.trim() !== '')
                                             .map((item) => (
                                                 <option key={item.itemID} value={item.courseName}>
                                                     {item.courseName}
@@ -288,10 +291,10 @@ export default function AddScheduleModal({ isOpen, onClose, onSuccess }: AddSche
                         </button>
                         <button
                             type="submit"
-                            disabled={loading} // Disable button when loading
+                            disabled={loading}
                             className="px-4 py-2 bg-askku-primary text-white rounded-lg hover:bg-askku-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? '추가 중...' : '추가'} {/* Loading text */}
+                            {loading ? '추가 중...' : '추가'}
                         </button>
                     </div>
                 </form>

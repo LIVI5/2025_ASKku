@@ -2,13 +2,19 @@ import { useEffect, useState, useCallback } from 'react'
 import { Schedule } from '../../types'
 import { deleteScheduleItem, getPrimaryCalendarSchedules } from '../../services/myPageService'
 
+/**
+ * 캘린더 뷰 컴포넌트
+ * - 월별 캘린더 형식으로 일정 표시
+ * - 여러 날짜에 걸친 일정 지원 (시작일/마감일 표시)
+ */
+
 interface CalendarViewProps {
     onAddClick: () => void
     onScheduleClick: (schedule: Schedule) => void
-    refreshTrigger: number; // A simple number that increments to trigger reload
+    refreshTrigger: number
 }
 
-// Helper to format time (HH:mm)
+// 시간 포맷 헬퍼 (HH:mm)
 const formatTime = (timeStr: string | undefined): string => {
     if (!timeStr) return '';
     if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
@@ -19,11 +25,11 @@ const formatTime = (timeStr: string | undefined): string => {
 
 export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigger }: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [allSchedules, setAllSchedules] = useState<Schedule[]>([]) // Stores all schedules fetched from API
-    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]) // Schedules filtered by type
+    const [allSchedules, setAllSchedules] = useState<Schedule[]>([])
+    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([])
     const [selectedType, setSelectedType] = useState<'all' | 'personal' | 'academic' | 'course'>('all')
 
-    // Effect to fetch all schedules from the API
+    // API에서 모든 일정 가져오기
     const fetchAllSchedules = useCallback(async () => {
         try {
             const schedulesFromApi = await getPrimaryCalendarSchedules();
@@ -36,9 +42,9 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
 
     useEffect(() => {
         fetchAllSchedules();
-    }, [fetchAllSchedules, refreshTrigger]); // Re-fetch when refreshTrigger changes
+    }, [fetchAllSchedules, refreshTrigger]);
 
-    // Effect to filter schedules based on selectedType
+    // 선택된 타입에 따라 일정 필터링
     useEffect(() => {
         if (selectedType === 'all') {
             setFilteredSchedules(allSchedules);
@@ -80,29 +86,29 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
         const firstDay = getFirstDayOfMonth(year, month)
         const days = []
 
-        // Empty cells for previous month
+        // 이전 달 빈 칸
         for (let i = 0; i < firstDay; i++) {
             days.push(<div key={`empty-${i}`} className="h-32 border-b border-r border-gray-100 bg-gray-50/30"></div>)
         }
 
-        // Days of current month
+        // 현재 달 날짜들
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            
-            // New filtering logic for daySchedules
+
+
             const daySchedules = filteredSchedules.filter(s => {
                 const startDate = s.startDate || s.date;
                 const endDate = s.endDate || startDate;
                 const formattedStartDate = startDate ? startDate.substring(0, 10) : '';
                 const formattedEndDate = endDate ? endDate.substring(0, 10) : '';
 
-                if (formattedStartDate === formattedEndDate) { // Single day schedule
+                if (formattedStartDate === formattedEndDate) {
                     return dateStr === formattedStartDate;
-                } else { // Multi-day schedule
+                } else {
                     return dateStr === formattedStartDate || dateStr === formattedEndDate;
                 }
             });
-            
+
             const isToday = new Date().toDateString() === new Date(year, month, day).toDateString()
 
             days.push(
@@ -116,11 +122,11 @@ export default function CalendarView({ onAddClick, onScheduleClick, refreshTrigg
                             const endDate = schedule.endDate || startDate;
                             const formattedStartDate = startDate ? startDate.substring(0, 10) : '';
                             const formattedEndDate = endDate ? endDate.substring(0, 10) : '';
-                            
+
                             let displayTitle = schedule.title;
                             let displayDescription = schedule.description || '';
 
-                            if (formattedStartDate !== formattedEndDate) { // Multi-day
+                            if (formattedStartDate !== formattedEndDate) {
                                 if (dateStr === formattedStartDate) {
                                     displayTitle += ' 시작일';
                                     if (schedule.startTime) {
@@ -134,15 +140,15 @@ ${displayDescription}`;
 ${displayDescription}`;
                                     }
                                 }
-                            } else { // Single-day
+                            } else {
                                 if (schedule.startTime) {
                                     displayDescription = `- 시작 시간: ${formatTime(schedule.startTime)}
 ${displayDescription}`;
                                 }
-                                if (schedule.endTime && schedule.startTime !== schedule.endTime) { // Only add end time if different from start
+                                if (schedule.endTime && schedule.startTime !== schedule.endTime) {
                                     displayDescription = `${displayDescription}
 - 종료 시간: ${formatTime(schedule.endTime)}`;
-                                } else if (schedule.endTime && !schedule.startTime) { // If only end time exists
+                                } else if (schedule.endTime && !schedule.startTime) {
                                     displayDescription = `- 종료 시간: ${formatTime(schedule.endTime)}
 ${displayDescription}`;
                                 }
@@ -155,9 +161,9 @@ ${displayDescription}`;
                                     onClick={() => onScheduleClick(schedule)}
                                     className="text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80 flex justify-between items-center group/item"
                                     style={{ backgroundColor: schedule.color || '#E5E7EB', color: '#fff' }}
-                                    title={`${displayTitle}\n${displayDescription || ''}`} // Use displayTitle and displayDescription for title attribute
+                                    title={`${displayTitle}\n${displayDescription || ''}`}
                                 >
-                                    <span className="truncate">{displayTitle}</span> {/* Use displayTitle */}
+                                    <span className="truncate">{displayTitle}</span>
                                     <button
                                         onClick={(e) => handleDeleteSchedule(schedule.itemID, e)}
                                         className="opacity-0 group-hover/item:opacity-100 ml-1 hover:text-red-200"
@@ -177,7 +183,7 @@ ${displayDescription}`;
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Calendar Header */}
+
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <h2 className="text-lg font-bold text-gray-800">
@@ -226,9 +232,7 @@ ${displayDescription}`;
                 </div>
             </div>
 
-            {/* Weekday Headers */}
 
-            {/* Weekday Headers */}
             <div className="grid grid-cols-7 border-b border-r border-gray-200 bg-gray-50">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
                     <div key={day} className={`py-2 text-center text-sm font-medium ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
@@ -237,7 +241,7 @@ ${displayDescription}`;
                 ))}
             </div>
 
-            {/* Calendar Grid */}
+
             <div className="grid grid-cols-7">
                 {renderCalendar()}
             </div>

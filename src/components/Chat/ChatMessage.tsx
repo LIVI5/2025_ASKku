@@ -7,6 +7,14 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkBreaks from 'remark-breaks'
 
+/**
+ * 채팅 메시지 컴포넌트
+ * - 사용자/AI 메시지 렌더링
+ * - 마크다운 지원 (리스트, 헤딩, 코드 블록 등)
+ * - 북마크, 일정 추출, 번역, 출처 보기 기능
+ * - 로딩 애니메이션
+ */
+
 interface ChatMessageProps {
     message: ChatMessageType
     onBookmark?: (messageId: string) => void
@@ -23,7 +31,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
         minute: '2-digit'
     })
 
-    // 객체 내용 전체를 비교하여 중복된 출처를 제거 (더 안전한 방식)
+    // 중복 제거된 출처 목록
     const uniqueSources =
         message.sources?.filter(
             (source, index, self) =>
@@ -47,7 +55,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                             }`}
                     >
                         <div className={`text-sm markdown-content ${isUser ? 'text-white' : 'text-gray-800'}`}>
-                            {/* 로딩 중일 때 로딩 인디케이터 표시 */}
+                            {/* 로딩 인디케이터 */}
                             {message.isLoading ? (
                                 <div className="flex gap-1">
                                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
@@ -59,7 +67,6 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                     remarkPlugins={[remarkGfm, remarkBreaks]}
                                     rehypePlugins={[rehypeRaw, rehypeSanitize]}
                                     components={{
-                                        // 리스트 스타일 커스터마이징
                                         ul: ({ node, ...props }) => (
                                             <ul className="list-disc list-outside space-y-1 my-2 pl-5" {...props} />
                                         ),
@@ -69,7 +76,6 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                         li: ({ node, ...props }) => (
                                             <li {...props} />
                                         ),
-                                        // 헤딩 스타일
                                         h1: ({ node, ...props }) => (
                                             <h1 className="text-xl font-bold mt-4 mb-2" {...props} />
                                         ),
@@ -79,21 +85,17 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                                         h3: ({ node, ...props }) => (
                                             <h3 className="text-base font-bold mt-2 mb-1" {...props} />
                                         ),
-                                        // 코드 블록
                                         code: ({ node, inline, ...props }: any) => (
                                             inline
                                                 ? <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props} />
                                                 : <code className="block bg-gray-200 p-2 rounded my-2 text-sm" {...props} />
                                         ),
-                                        // 강조
                                         strong: ({ node, ...props }) => (
                                             <strong className="font-bold" {...props} />
                                         ),
-                                        // 링크
                                         a: ({ node, ...props }) => (
                                             <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
                                         ),
-                                        // 문단
                                         p: ({ node, ...props }) => (
                                             <p className="my-1" {...props} />
                                         )
@@ -104,7 +106,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                             )}
                         </div>
 
-                        {/* 출처 표시 섹션 */}
+                        {/* 출처 표시 */}
                         {!isUser && uniqueSources.length > 0 && showSources && (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                 <p className="text-xs font-semibold text-gray-600 mb-2">📚 참고 문서:</p>
@@ -137,6 +139,7 @@ export default function ChatMessage({ message, onBookmark, onScheduleExtract, on
                         )}
                     </div>
 
+                    {/* 하단 액션 버튼 */}
                     <div className={`flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs text-gray-500">{time}</span>
                         {!isUser && onBookmark && (

@@ -1,5 +1,12 @@
 import { useState, KeyboardEvent } from 'react'
 
+/**
+ * 채팅 입력 컴포넌트
+ * - 텍스트 입력 및 전송
+ * - Enter: 전송 / Shift+Enter: 줄바꿈
+ * - disabled 상태 지원 (AI 응답 대기 중)
+ */
+
 interface ChatInputProps {
     onSend: (message: string) => void
     disabled?: boolean
