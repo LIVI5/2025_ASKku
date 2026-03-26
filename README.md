@@ -39,12 +39,6 @@ LLM과 RAG(Retrieval-Augmented Generation)를 활용하여
 
 ---
 
-## 📂 프로젝트 구조
-- backend/
-- frontend/
-
----
-
 ## 👥 Team Project
 
 - 인원: 6인 (FE 2, BE 2, AI 2)
@@ -54,9 +48,7 @@ LLM과 RAG(Retrieval-Augmented Generation)를 활용하여
 
 ## 🙋‍♂️ My Contributions
 
-### 🔹 RAG Pipeline (핵심 기여)
-
-RAG(Retrieval-Augmented Generation) 파이프라인 전반을 설계 및 구현
+### 🔹 RAG 파이프라인의 데이터 수집부터 임베딩, 검색, LLM 응답 생성까지 전 과정을 직접 설계하고 구현했습니다.
 
 - **데이터 수집 (Crawling)**
   - Selenium 기반 웹 크롤러 구현
