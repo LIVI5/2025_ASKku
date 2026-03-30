@@ -6,11 +6,22 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PERSIST_DIR = os.path.join(BASE_DIR, "chroma_db")
-today = datetime.now().strftime("%Y-%m-%d")
+
+def get_current_time_context() -> str:
+    """프롬프트에 넣을 현재 시각 정보를 생성"""
+    now = datetime.now(ZoneInfo("Asia/Seoul"))
+    weekday_ko = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][now.weekday()]
+    return (
+        f"[현재 시각]\n"
+        f"- 기준 타임존: Asia/Seoul\n"
+        f"- 오늘 날짜: {now.strftime('%Y-%m-%d')} ({weekday_ko})\n"
+        f"- 현재 시각: {now.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
 
 def clean_text(text: str) -> str:
     """텍스트 인코딩 정리"""
@@ -112,6 +123,7 @@ def create_system_prompt(
     """시스템 프롬프트 생성"""
 
     user_info_block = format_user_info(user_info)
+    current_time_block = get_current_time_context()
 
     timetable_info = f"\n\n[사용자 시간표]\n{format_timetable(timetable)}"
 
@@ -120,6 +132,7 @@ def create_system_prompt(
 
     system_prompt = f"""너는 성균관대학교 학생을 돕는 AI 어시스턴트야.
 
+{current_time_block}
 {user_info_block}
 {timetable_info}
 {calendar_info}
@@ -203,7 +216,6 @@ async def generate_rag_response_stream(
         
         # 4. 시스템 프롬프트 생성 (DB 정보 활용)
         system_msg = create_system_prompt(user_info, timetable, calendar or [])
-        
         # 5. 메시지 구성
         messages = [SystemMessage(content=system_msg)]
         
