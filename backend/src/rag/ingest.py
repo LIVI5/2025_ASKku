@@ -45,11 +45,22 @@ PERSIST_DIR = os.path.join(BASE_DIR, "chroma_db")
 CRAWLED_DATA_FILE = os.path.join(BASE_DIR, "crawled_data.json") # 게시판별 post_num 저장
 LATEST_NOTICES_FILE = os.path.join(BASE_DIR, "latest_notices.json") # 최신 공지사항 저장 (전체 통합)
 
+BOARD_CAMPUS_MAP = {
+    "소프트웨어학과": "자연과학",
+    "소프트웨어융합대학": "자연과학",
+    "기숙사_수원": "자연과학",
+    "기숙사_서울": "인문사회",
+}
+
 def clean_text(text: str) -> str:
     """텍스트 인코딩 정리"""
     if text is None:
         return ""
     return text.encode("utf-8", "ignore").decode("utf-8", "ignore")
+
+def get_board_campus(board_name: str) -> str | None:
+    """게시판 이름으로 캠퍼스 메타데이터를 반환"""
+    return BOARD_CAMPUS_MAP.get(board_name)
 
 def load_crawled_data() -> Dict[str, Set[str]]:
     """
@@ -217,6 +228,9 @@ def process_crawler(
             # source_type에 게시판 정보 추가
             d.metadata["source_type"] = f"{board_name}_notice"
             d.metadata["board_name"] = board_name
+            campus = get_board_campus(board_name)
+            if campus:
+                d.metadata["campus"] = campus
         
         # 새로 크롤링한 post_num 수집 (크롤러가 이미 숫자만 반환)
         new_post_nums = {n['post_num'] for n in notices}
